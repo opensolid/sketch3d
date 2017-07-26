@@ -1,0 +1,20 @@
+{
+    "version": "1.0.0",
+    "summary": "OpenSolid-based 3D illustration package",
+    "repository": "https://github.com/opensolid/illustration.git",
+    "license": "MPL-2.0",
+    "source-directories": [
+        "src",
+        "../geometry/src",
+        "../webgl/src",
+        "../../elm-community/webgl/src"
+    ],
+    "native-modules": true,
+    "exposed-modules": [],
+    "dependencies": {
+        "elm-community/linear-algebra": "3.1.0 <= v < 4.0.0",
+        "elm-lang/core": "5.0.0 <= v < 6.0.0",
+        "elm-lang/html": "2.0.0 <= v < 3.0.0"
+    },
+    "elm-version": "0.18.0 <= v < 0.19.0"
+}

@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "OpenSolid-based 3D illustration package",
-    "repository": "https://github.com/opensolid/illustration.git",
+    "repository": "https://github.com/opensolid/sketch3d.git",
     "license": "MPL-2.0",
     "source-directories": [
         "src",

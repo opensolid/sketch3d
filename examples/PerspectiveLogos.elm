@@ -8,9 +8,9 @@ import OpenSolid.Axis3d as Axis3d
 import OpenSolid.Direction3d as Direction3d
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
-import OpenSolid.Illustration as Illustration
 import OpenSolid.Plane3d as Plane3d
 import OpenSolid.Point3d as Point3d
+import OpenSolid.Sketch3d as Sketch3d
 import OpenSolid.WebGL.Camera as Camera
 import OpenSolid.WebGL.Frame3d as Frame3d
 import Time
@@ -21,10 +21,10 @@ view : Float -> Html Float
 view angleInDegrees =
     let
         width =
-            800
+            512
 
         height =
-            600
+            512
 
         eyePoint =
             Point3d ( 10, 0, 0 )
@@ -52,28 +52,28 @@ view angleInDegrees =
             degrees angleInDegrees
 
         rotatedLogo =
-            Logo.illustration |> Illustration.rotateAround Axis3d.z angle
+            Logo.sketch |> Sketch3d.rotateAround Axis3d.z angle
 
         rightLogo =
-            rotatedLogo |> Illustration.translateBy (Vector3d ( 1, 1, 0.75 ))
+            rotatedLogo |> Sketch3d.translateBy (Vector3d ( 1, 1, 0.75 ))
 
         leftLogo =
-            rightLogo |> Illustration.mirrorAcross Plane3d.zx
+            rightLogo |> Sketch3d.mirrorAcross Plane3d.zx
 
         frontLogos =
-            Illustration.group [ rightLogo, leftLogo ]
+            Sketch3d.group [ rightLogo, leftLogo ]
 
         backLogos =
-            frontLogos |> Illustration.mirrorAcross Plane3d.yz
+            frontLogos |> Sketch3d.mirrorAcross Plane3d.yz
 
         topLogos =
-            Illustration.group [ frontLogos, backLogos ]
+            Sketch3d.group [ frontLogos, backLogos ]
 
         bottomLogos =
-            topLogos |> Illustration.mirrorAcross Plane3d.xy
+            topLogos |> Sketch3d.mirrorAcross Plane3d.xy
 
         scene =
-            Illustration.group [ topLogos, bottomLogos ]
+            Sketch3d.group [ topLogos, bottomLogos ]
 
         sliderAttributes =
             [ Attributes.style [ ( "width", toString width ++ "px" ) ] ]
@@ -85,7 +85,7 @@ view angleInDegrees =
             }
     in
     Html.div []
-        [ Html.div [] [ Illustration.render camera scene ]
+        [ Html.div [] [ Sketch3d.render camera scene ]
         , InputWidget.slider sliderAttributes sliderConfig angleInDegrees
         ]
 

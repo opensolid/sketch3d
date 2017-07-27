@@ -1,7 +1,7 @@
 module Logo
     exposing
         ( edges
-        , illustration
+        , sketch
         , vertices
         )
 
@@ -9,9 +9,9 @@ import Color
 import Math.Vector3 exposing (Vec3, vec3)
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
-import OpenSolid.Illustration as Illustration exposing (Illustration)
 import OpenSolid.LineSegment3d as LineSegment3d
 import OpenSolid.Point3d as Point3d
+import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 
 
 height : Float
@@ -116,8 +116,8 @@ edges =
         |> List.map (LineSegment3d.relativeTo centerFrame)
 
 
-illustration : Illustration
-illustration =
+sketch : Sketch3d
+sketch =
     let
         orange =
             Color.rgb 240 173 0
@@ -132,7 +132,7 @@ illustration =
             Color.rgb 90 99 120
 
         leftFace =
-            Illustration.indexedTriangles orange
+            Sketch3d.indexedTriangles orange
                 vertices
                 [ ( 1, 2, 8 )
                 , ( 1, 8, 7 )
@@ -140,7 +140,7 @@ illustration =
                 ]
 
         rightFace =
-            Illustration.indexedTriangles lightBlue
+            Sketch3d.indexedTriangles lightBlue
                 vertices
                 [ ( 2, 3, 4 )
                 , ( 2, 4, 9 )
@@ -148,7 +148,7 @@ illustration =
                 ]
 
         topFace =
-            Illustration.indexedTriangles green
+            Sketch3d.indexedTriangles green
                 vertices
                 [ ( 6, 7, 9 )
                 , ( 6, 9, 4 )
@@ -156,30 +156,30 @@ illustration =
                 ]
 
         triangleFace =
-            Illustration.indexedTriangles darkBlue vertices [ ( 7, 8, 9 ) ]
+            Sketch3d.indexedTriangles darkBlue vertices [ ( 7, 8, 9 ) ]
 
         bottomFace =
-            Illustration.indexedTriangles green
+            Sketch3d.indexedTriangles green
                 vertices
                 [ ( 0, 3, 2 )
                 , ( 0, 2, 1 )
                 ]
 
         backLeftFace =
-            Illustration.indexedTriangles lightBlue
+            Sketch3d.indexedTriangles lightBlue
                 vertices
                 [ ( 6, 5, 0 )
                 , ( 6, 0, 1 )
                 ]
 
         backRightFace =
-            Illustration.indexedTriangles orange
+            Sketch3d.indexedTriangles orange
                 vertices
                 [ ( 3, 0, 5 )
                 , ( 3, 5, 4 )
                 ]
     in
-    Illustration.group
+    Sketch3d.group
         [ leftFace
         , rightFace
         , topFace

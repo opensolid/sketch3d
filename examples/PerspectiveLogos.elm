@@ -1,6 +1,5 @@
 module PerspectiveLogos exposing (..)
 
-import AnimationFrame
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Kintail.InputWidget as InputWidget

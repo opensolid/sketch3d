@@ -1,13 +1,17 @@
 module OpenSolid.Sketch3d
     exposing
-        ( Sketch3d
+        ( Edge
+        , Face
+        , Sketch3d
+        , SurfaceVertex
+        , curve
         , group
-        , indexedTriangles
         , mirrorAcross
         , placeIn
         , relativeTo
         , render
         , rotateAround
+        , surface
         , translateBy
         )
 
@@ -17,10 +21,12 @@ import Html.Attributes
 import Math.Matrix4 exposing (Mat4)
 import Math.Vector2 exposing (Vec2, vec2)
 import Math.Vector3 exposing (Vec3, vec3)
+import Math.Vector4 exposing (Vec4, vec4)
 import OpenSolid.BoundingBox3d as BoundingBox3d
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
 import OpenSolid.Point3d as Point3d
+import OpenSolid.Triangle3d as Triangle3d
 import OpenSolid.Vector3d as Vector3d
 import OpenSolid.WebGL.Camera as Camera exposing (Camera)
 import OpenSolid.WebGL.Frame3d as Frame3d
@@ -31,36 +37,60 @@ import WebGL.Settings.DepthTest
 import WebGL.Texture as Texture exposing (Texture)
 
 
-type alias Vertex =
+type alias SurfaceVertex =
     { position : Point3d
-    , color : Vec3
-    , surfaceIndex : Int
-    , surfaceSize : Float
+    , edgeDistances : ( Float, Float, Float )
     }
 
 
-type alias Attributes =
+type alias CachedSurfaceVertex =
+    { position : Point3d
+    , edgeDistances : Vec3
+    , color : Vec3
+    }
+
+
+type alias SurfaceVertexAttributes =
     { position : Vec3
+    , edgeDistances : Vec3
     , color : Vec3
-    , surfaceIndex : Float
-    , surfaceSize : Float
     }
 
 
-type Sketch3d
-    = Leaf
-        { mesh : WebGL.Mesh Attributes
-        , vertices : List Vertex
-        , faces : List ( Int, Int, Int )
-        , boundingBox : BoundingBox3d
-        }
-    | Placed
-        { placementFrame : Frame3d
-        , isMirror : Bool
-        , sketch : Sketch3d
-        }
-    | Group (List Sketch3d)
-    | Empty
+type alias Face =
+    ( SurfaceVertex, SurfaceVertex, SurfaceVertex )
+
+
+type alias CachedFace =
+    ( CachedSurfaceVertex, CachedSurfaceVertex, CachedSurfaceVertex )
+
+
+type alias FaceAttributes =
+    ( SurfaceVertexAttributes, SurfaceVertexAttributes, SurfaceVertexAttributes )
+
+
+type alias CachedCurveVertex =
+    { position : Point3d
+    , color : Vec4
+    }
+
+
+type alias CurveVertexAttributes =
+    { position : Vec3
+    , color : Vec4
+    }
+
+
+type alias Edge =
+    ( Point3d, Point3d )
+
+
+type alias CachedEdge =
+    ( CachedCurveVertex, CachedCurveVertex )
+
+
+type alias EdgeAttributes =
+    ( CurveVertexAttributes, CurveVertexAttributes )
 
 
 toVec3 : Color -> Vec3
@@ -75,50 +105,155 @@ toVec3 color_ =
         (toFloat blue / 255.0)
 
 
-diagonalSize : BoundingBox3d -> Float
-diagonalSize boundingBox =
+toVec4 : Color -> Vec4
+toVec4 color_ =
     let
-        dimensions =
-            BoundingBox3d.dimensions boundingBox
+        { red, green, blue, alpha } =
+            Color.toRgb color_
     in
-    Vector3d.length (Vector3d dimensions)
+    vec4
+        (toFloat red / 255.0)
+        (toFloat green / 255.0)
+        (toFloat blue / 255.0)
+        alpha
 
 
-indexedTriangles : Color -> List Point3d -> List ( Int, Int, Int ) -> Sketch3d
-indexedTriangles color points faces =
-    case BoundingBox3d.containing points of
+toCachedSurfaceVertex : Vec3 -> SurfaceVertex -> CachedSurfaceVertex
+toCachedSurfaceVertex color surfaceVertex =
+    { position = surfaceVertex.position
+    , edgeDistances = Math.Vector3.fromTuple surfaceVertex.edgeDistances
+    , color = color
+    }
+
+
+toSurfaceVertexAttributes : CachedSurfaceVertex -> SurfaceVertexAttributes
+toSurfaceVertexAttributes cachedSurfaceVertex =
+    { position = Point3d.toVec3 cachedSurfaceVertex.position
+    , edgeDistances = cachedSurfaceVertex.edgeDistances
+    , color = cachedSurfaceVertex.color
+    }
+
+
+toCachedFace : Vec3 -> Face -> CachedFace
+toCachedFace color ( firstSurfaceVertex, secondSurfaceVertex, thirdSurfaceVertex ) =
+    ( toCachedSurfaceVertex color firstSurfaceVertex
+    , toCachedSurfaceVertex color secondSurfaceVertex
+    , toCachedSurfaceVertex color thirdSurfaceVertex
+    )
+
+
+toFaceAttributes : CachedFace -> FaceAttributes
+toFaceAttributes ( cachedSurfaceVertex1, cachedSurfaceVertex2, cachedSurfaceVertex3 ) =
+    ( toSurfaceVertexAttributes cachedSurfaceVertex1
+    , toSurfaceVertexAttributes cachedSurfaceVertex2
+    , toSurfaceVertexAttributes cachedSurfaceVertex3
+    )
+
+
+toCachedCurveVertex : Vec4 -> Point3d -> CachedCurveVertex
+toCachedCurveVertex color position =
+    { position = position
+    , color = color
+    }
+
+
+toCurveVertexAttributes : CachedCurveVertex -> CurveVertexAttributes
+toCurveVertexAttributes cachedCurveVertex =
+    { position = Point3d.toVec3 cachedCurveVertex.position
+    , color = cachedCurveVertex.color
+    }
+
+
+toCachedEdge : Vec4 -> Edge -> CachedEdge
+toCachedEdge color ( startPosition, endPosition ) =
+    ( toCachedCurveVertex color startPosition
+    , toCachedCurveVertex color endPosition
+    )
+
+
+toEdgeAttributes : CachedEdge -> EdgeAttributes
+toEdgeAttributes ( cachedStartVertex, cachedEndVertex ) =
+    ( toCurveVertexAttributes cachedStartVertex
+    , toCurveVertexAttributes cachedEndVertex
+    )
+
+
+type Sketch3d
+    = Surface
+        { mesh : WebGL.Mesh SurfaceVertexAttributes
+        , cachedFaces : List CachedFace
+        , boundingBox : BoundingBox3d
+        }
+    | Curve
+        { mesh : WebGL.Mesh CurveVertexAttributes
+        , cachedEdges : List CachedEdge
+        , boundingBox : BoundingBox3d
+        }
+    | Placed
+        { placementFrame : Frame3d
+        , isMirror : Bool
+        , sketch : Sketch3d
+        }
+    | Group (List Sketch3d)
+    | Empty
+
+
+faceBounds : Face -> BoundingBox3d
+faceBounds ( firstVertex, secondVertex, thirdVertex ) =
+    Triangle3d.boundingBox <|
+        Triangle3d
+            ( firstVertex.position
+            , secondVertex.position
+            , thirdVertex.position
+            )
+
+
+edgeBounds : Edge -> BoundingBox3d
+edgeBounds ( startPosition, endPosition ) =
+    Point3d.hull startPosition endPosition
+
+
+surface : Color -> List Face -> Sketch3d
+surface color faces =
+    case BoundingBox3d.hullOf (List.map faceBounds faces) of
         Just boundingBox ->
             let
-                surfaceSize =
-                    diagonalSize boundingBox
+                cachedFaces =
+                    List.map (toCachedFace (toVec3 color)) faces
 
-                colorVec =
-                    toVec3 color
-
-                toVertex point =
-                    { position = point
-                    , color = colorVec
-                    , surfaceIndex = 1
-                    , surfaceSize = surfaceSize
-                    }
-
-                toAttributes point =
-                    { position = Point3d.toVec3 point
-                    , color = colorVec
-                    , surfaceIndex = 1
-                    , surfaceSize = surfaceSize
-                    }
-
-                vertexAttributes =
-                    List.map toAttributes points
+                faceAttributes =
+                    List.map toFaceAttributes cachedFaces
 
                 mesh =
-                    WebGL.indexedTriangles vertexAttributes faces
+                    WebGL.triangles faceAttributes
             in
-            Leaf
+            Surface
                 { mesh = mesh
-                , vertices = List.map toVertex points
-                , faces = faces
+                , cachedFaces = cachedFaces
+                , boundingBox = boundingBox
+                }
+
+        Nothing ->
+            Empty
+
+
+curve : Color -> List Edge -> Sketch3d
+curve color edges =
+    case BoundingBox3d.hullOf (List.map edgeBounds edges) of
+        Just boundingBox ->
+            let
+                cachedEdges =
+                    List.map (toCachedEdge (toVec4 color)) edges
+
+                edgeAttributes =
+                    List.map toEdgeAttributes cachedEdges
+
+                mesh =
+                    WebGL.lines edgeAttributes
+            in
+            Curve
+                { mesh = mesh
+                , cachedEdges = cachedEdges
                 , boundingBox = boundingBox
                 }
 
@@ -134,7 +269,14 @@ group =
 transformBy : (Frame3d -> Frame3d) -> Bool -> Sketch3d -> Sketch3d
 transformBy frameTransformation isMirror sketch =
     case sketch of
-        Leaf _ ->
+        Surface _ ->
+            Placed
+                { placementFrame = frameTransformation Frame3d.xyz
+                , isMirror = isMirror
+                , sketch = sketch
+                }
+
+        Curve _ ->
             Placed
                 { placementFrame = frameTransformation Frame3d.xyz
                 , isMirror = isMirror
@@ -199,62 +341,64 @@ relativeTo frame sketch =
     transformBy (Frame3d.relativeTo frame) isMirror sketch
 
 
-type alias Uniforms =
-    { modelViewProjectionMatrix : Mat4
+type alias SurfaceUniforms =
+    { pixelScale : Float
+    , modelViewProjectionMatrix : Mat4
     }
 
 
-type alias Varyings =
-    { interpolatedDepth : Float
-    , interpolatedColor : Vec3
-    , interpolatedSurfaceIndex : Float
-    , interpolatedSurfaceSize : Float
+type alias SurfaceVaryings =
+    { interpolatedColor : Vec3
+    , interpolatedEdgeDistances : Vec3
+    , interpolatedPixelsPerUnit : Float
     }
 
 
-vertexShader : WebGL.Shader Attributes Uniforms Varyings
-vertexShader =
+surfaceVertexShader : WebGL.Shader SurfaceVertexAttributes SurfaceUniforms SurfaceVaryings
+surfaceVertexShader =
     [glsl|
         attribute vec3 position;
         attribute vec3 color;
-        attribute float surfaceIndex;
-        attribute float surfaceSize;
+        attribute vec3 edgeDistances;
 
+        uniform float pixelScale;
         uniform mat4 modelViewProjectionMatrix;
 
-        varying float interpolatedDepth;
         varying vec3 interpolatedColor;
-        varying float interpolatedSurfaceIndex;
-        varying float interpolatedSurfaceSize;
+        varying vec3 interpolatedEdgeDistances;
+        varying float interpolatedPixelsPerUnit;
 
         void main () {
             gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
-            interpolatedDepth = gl_Position.w;
             interpolatedColor = color;
-            interpolatedSurfaceIndex = surfaceIndex;
-            interpolatedSurfaceSize = surfaceSize;
+            interpolatedEdgeDistances = edgeDistances;
+            interpolatedPixelsPerUnit = pixelScale / gl_Position.w;
         }
     |]
 
 
-colorShader : WebGL.Shader {} Uniforms Varyings
-colorShader =
+surfaceFragmentShader : WebGL.Shader {} SurfaceUniforms SurfaceVaryings
+surfaceFragmentShader =
     [glsl|
         precision mediump float;
 
-        varying float interpolatedDepth;
         varying vec3 interpolatedColor;
-        varying float interpolatedSurfaceIndex;
-        varying float interpolatedSurfaceSize;
+        varying vec3 interpolatedEdgeDistances;
+        varying float interpolatedPixelsPerUnit;
 
         void main() {
-            gl_FragColor = vec4(interpolatedColor, 1.0);
+            float pixelsFromEdge1 = interpolatedEdgeDistances.x * interpolatedPixelsPerUnit;
+            float pixelsFromEdge2 = interpolatedEdgeDistances.y * interpolatedPixelsPerUnit;
+            float pixelsFromEdge3 = interpolatedEdgeDistances.z * interpolatedPixelsPerUnit;
+            float pixelsFromEdge = min(pixelsFromEdge1, min(pixelsFromEdge2, pixelsFromEdge3));
+            float colorScale = clamp(pixelsFromEdge, 0.0, 1.0);
+            gl_FragColor = vec4(interpolatedColor * colorScale, 1.0);
         }
     |]
 
 
-toEntity : Camera -> Frame3d -> Bool -> WebGL.Mesh Attributes -> WebGL.Entity
-toEntity camera placementFrame isMirror mesh =
+surfaceToEntity : Camera -> Float -> Frame3d -> Bool -> WebGL.Mesh SurfaceVertexAttributes -> WebGL.Entity
+surfaceToEntity camera pixelScale placementFrame isMirror mesh =
     let
         modelViewMatrix =
             Frame3d.modelViewMatrix (Camera.frame camera) placementFrame
@@ -277,27 +421,97 @@ toEntity camera placementFrame isMirror mesh =
             ]
 
         uniforms =
+            { pixelScale = pixelScale
+            , modelViewProjectionMatrix = modelViewProjectionMatrix
+            }
+    in
+    WebGL.entityWith settings
+        surfaceVertexShader
+        surfaceFragmentShader
+        mesh
+        uniforms
+
+
+type alias CurveUniforms =
+    { modelViewProjectionMatrix : Mat4
+    }
+
+
+type alias CurveVaryings =
+    { interpolatedColor : Vec4
+    }
+
+
+curveVertexShader : WebGL.Shader CurveVertexAttributes CurveUniforms CurveVaryings
+curveVertexShader =
+    [glsl|
+        attribute vec3 position;
+        attribute vec4 color;
+
+        uniform mat4 modelViewProjectionMatrix;
+
+        varying vec4 interpolatedColor;
+
+        void main () {
+            gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
+            interpolatedColor = color;
+        }
+    |]
+
+
+curveFragmentShader : WebGL.Shader {} CurveUniforms CurveVaryings
+curveFragmentShader =
+    [glsl|
+        precision mediump float;
+
+        varying vec4 interpolatedColor;
+
+        void main() {
+            gl_FragColor = interpolatedColor;
+        }
+    |]
+
+
+curveToEntity : Camera -> Frame3d -> WebGL.Mesh CurveVertexAttributes -> WebGL.Entity
+curveToEntity camera placementFrame mesh =
+    let
+        modelViewMatrix =
+            Frame3d.modelViewMatrix (Camera.frame camera) placementFrame
+
+        projectionMatrix =
+            Camera.projectionMatrix camera
+
+        modelViewProjectionMatrix =
+            Math.Matrix4.mul projectionMatrix modelViewMatrix
+
+        uniforms =
             { modelViewProjectionMatrix = modelViewProjectionMatrix
             }
     in
-    WebGL.entityWith settings vertexShader colorShader mesh uniforms
+    WebGL.entity curveVertexShader curveFragmentShader mesh uniforms
 
 
-collectEntities : Camera -> Frame3d -> Bool -> Sketch3d -> List WebGL.Entity -> List WebGL.Entity
-collectEntities camera currentFrame currentMirror sketch accumulated =
+collectEntities : Camera -> Float -> Frame3d -> Bool -> Sketch3d -> List WebGL.Entity -> List WebGL.Entity
+collectEntities camera pixelScale currentFrame currentMirror sketch accumulated =
     case sketch of
-        Leaf { mesh } ->
-            toEntity camera currentFrame currentMirror mesh :: accumulated
+        Surface { mesh } ->
+            surfaceToEntity camera pixelScale currentFrame currentMirror mesh :: accumulated
+
+        Curve { mesh } ->
+            curveToEntity camera currentFrame mesh :: accumulated
 
         Placed properties ->
-            collectEntities camera
+            collectEntities
+                camera
+                pixelScale
                 (Frame3d.placeIn currentFrame properties.placementFrame)
                 (currentMirror /= properties.isMirror)
                 properties.sketch
                 accumulated
 
         Group sketches ->
-            List.foldl (collectEntities camera currentFrame currentMirror)
+            List.foldl
+                (collectEntities camera pixelScale currentFrame currentMirror)
                 accumulated
                 sketches
 
@@ -305,149 +519,30 @@ collectEntities camera currentFrame currentMirror sketch accumulated =
             accumulated
 
 
-type alias PostProcessAttributes =
-    { position : Vec2
-    , textureCoordinates : Vec2
-    }
-
-
-type alias PostProcessUniforms =
-    { texture : Texture
-    , dx : Float
-    , dy : Float
-    }
-
-
-type alias PostProcessVaryings =
-    { interpolatedTextureCoordinates : Vec2
-    }
-
-
-postProcessVertexShader : WebGL.Shader PostProcessAttributes PostProcessUniforms PostProcessVaryings
-postProcessVertexShader =
-    [glsl|
-        attribute vec2 position;
-        attribute vec2 textureCoordinates;
-
-        varying vec2 interpolatedTextureCoordinates;
-
-        void main() {
-            gl_Position = vec4(position, 0, 1);
-            interpolatedTextureCoordinates = textureCoordinates;
-        }
-    |]
-
-
-postProcessFragmentShader : WebGL.Shader {} PostProcessUniforms PostProcessVaryings
-postProcessFragmentShader =
-    [glsl|
-        precision mediump float;
-
-        uniform sampler2D texture;
-        uniform float dx;
-        uniform float dy;
-
-        varying vec2 interpolatedTextureCoordinates;
-
-        void main() {
-            float x1 = interpolatedTextureCoordinates.x;
-            float y1 = interpolatedTextureCoordinates.y;
-            float x0 = x1 - dx;
-            float x2 = x1 + dx;
-            float y0 = y1 - dx;
-            float y2 = y1 + dx;
-
-            vec4 col00 = texture2D(texture, vec2(x0, y0));
-            vec4 col10 = texture2D(texture, vec2(x1, y0));
-            vec4 col20 = texture2D(texture, vec2(x2, y0));
-            vec4 col01 = texture2D(texture, vec2(x0, y1));
-            vec4 col11 = texture2D(texture, vec2(x1, y1));
-            vec4 col21 = texture2D(texture, vec2(x2, y1));
-            vec4 col02 = texture2D(texture, vec2(x0, y2));
-            vec4 col12 = texture2D(texture, vec2(x1, y2));
-            vec4 col22 = texture2D(texture, vec2(x2, y2));
-
-            float weight = 0.0;
-            weight += float(col11 != col12);
-            weight += float(col11 != col21);
-            weight += float(col11 != col01);
-            weight += float(col11 != col10);
-            weight += 0.5 * float(col11 != col00);
-            weight += 0.5 * float(col11 != col22);
-            weight += 0.5 * float(col11 != col02);
-            weight += 0.5 * float(col11 != col20);
-            weight = clamp(weight, 0.0, 0.5);
-
-            gl_FragColor = (1.0 - weight) * col00 + vec4(0, 0, 0, weight);
-
-
-            //gl_FragColor = texture2D(texture, interpolatedTextureCoordinates);
-            //gl_FragColor = vec4(0, 0, 1, 1);
-        }
-    |]
-
-
-screenSpaceQuad : WebGL.Mesh PostProcessAttributes
-screenSpaceQuad =
-    WebGL.indexedTriangles
-        [ { position = vec2 -1 -1, textureCoordinates = vec2 0 0 }
-        , { position = vec2 1 -1, textureCoordinates = vec2 1 0 }
-        , { position = vec2 1 1, textureCoordinates = vec2 1 1 }
-        , { position = vec2 -1 1, textureCoordinates = vec2 0 1 }
-        ]
-        [ ( 0, 1, 2 )
-        , ( 0, 2, 3 )
-        ]
-
-
 render : Camera -> Sketch3d -> Html msg
 render camera sketch =
     let
         width =
-            round (Camera.screenWidth camera)
+            Camera.screenWidth camera
 
         height =
-            round (Camera.screenHeight camera)
+            Camera.screenHeight camera
+
+        projectionMatrix =
+            Camera.projectionMatrix camera
+
+        pixelScale =
+            (Math.Matrix4.toRecord projectionMatrix).m11 * width / 2
 
         entities =
-            collectEntities camera Frame3d.xyz False sketch []
-
-        textureOptions =
-            { magnify = Texture.linear
-            , minify = Texture.nearestMipmapLinear
-            , horizontalWrap = Texture.mirroredRepeat
-            , verticalWrap = Texture.mirroredRepeat
-            , flipY = False
-            }
-
-        textureDimensions =
-            ( 2 * width, 2 * height )
-
-        textureResult =
-            Texture.fromEntities textureOptions textureDimensions entities
+            collectEntities camera pixelScale Frame3d.xyz False sketch []
     in
-    case textureResult of
-        Ok texture ->
-            let
-                postProcessed =
-                    WebGL.entity
-                        postProcessVertexShader
-                        postProcessFragmentShader
-                        screenSpaceQuad
-                        { texture = texture
-                        , dx = 1 / (2 * toFloat width)
-                        , dy = 1 / (2 * toFloat height)
-                        }
-            in
-            WebGL.toHtml
-                [ Html.Attributes.width (2 * width)
-                , Html.Attributes.height (2 * height)
-                , Html.Attributes.style
-                    [ ( "width", toString width ++ "px" )
-                    , ( "height", toString height ++ "px" )
-                    ]
-                ]
-                [ postProcessed ]
-
-        Err _ ->
-            Html.text "Error rendering to texture"
+    WebGL.toHtml
+        [ Html.Attributes.width (2 * round width)
+        , Html.Attributes.height (2 * round height)
+        , Html.Attributes.style
+            [ ( "width", toString width ++ "px" )
+            , ( "height", toString height ++ "px" )
+            ]
+        ]
+        entities

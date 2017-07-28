@@ -507,7 +507,9 @@ surfaceVertexShader =
 
 surfaceFragmentShader : WebGL.Shader {} SurfaceUniforms SurfaceVaryings
 surfaceFragmentShader =
-    [glsl|
+    WebGL.unsafeShader
+        """#extension GL_OES_standard_derivatives : enable
+
         precision mediump float;
 
         varying vec3 interpolatedColor;
@@ -515,14 +517,22 @@ surfaceFragmentShader =
         varying float interpolatedPixelsPerUnit;
 
         void main() {
-            float pixelsFromEdge1 = interpolatedEdgeDistances.x * interpolatedPixelsPerUnit;
-            float pixelsFromEdge2 = interpolatedEdgeDistances.y * interpolatedPixelsPerUnit;
-            float pixelsFromEdge3 = interpolatedEdgeDistances.z * interpolatedPixelsPerUnit;
-            float pixelsFromEdge = min(pixelsFromEdge1, min(pixelsFromEdge2, pixelsFromEdge3));
-            float colorScale = clamp(pixelsFromEdge, 0.0, 1.0);
+            float distance1 = interpolatedEdgeDistances.x;
+            float distance2 = interpolatedEdgeDistances.y;
+            float distance3 = interpolatedEdgeDistances.z;
+
+            float gradientSlope1 = length(vec2(dFdx(distance1), dFdy(distance1)));
+            float gradientSlope2 = length(vec2(dFdx(distance2), dFdy(distance2)));
+            float gradientSlope3 = length(vec2(dFdx(distance3), dFdy(distance3)));
+
+            float pixelDistance1 = distance1 / gradientSlope1;
+            float pixelDistance2 = distance2 / gradientSlope2;
+            float pixelDistance3 = distance3 / gradientSlope3;
+
+            float pixelDistance = min(pixelDistance1, min(pixelDistance2, pixelDistance3));
+            float colorScale = clamp(pixelDistance, 0.0, 1.0);
             gl_FragColor = vec4(interpolatedColor * colorScale, 1.0);
-        }
-    |]
+        }"""
 
 
 surfaceToEntity : Camera -> Float -> Frame3d -> Bool -> WebGL.Mesh SurfaceVertexAttributes -> WebGL.Entity

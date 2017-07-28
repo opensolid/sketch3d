@@ -1,20 +1,18 @@
 module OpenSolid.Sketch3d
     exposing
-        ( Edge
-        , Face
-        , Sketch3d
-        , SurfaceVertex
+        ( Sketch3d
         , curve
         , group
+        , indexedTriangles
         , mirrorAcross
         , placeIn
         , relativeTo
         , render
         , rotateAround
-        , surface
         , translateBy
         )
 
+import Array.Hamt as Array
 import Color exposing (Color)
 import Html exposing (Html)
 import Html.Attributes
@@ -26,6 +24,7 @@ import OpenSolid.BoundingBox3d as BoundingBox3d
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
 import OpenSolid.Point3d as Point3d
+import OpenSolid.Sketch3d.EdgeSet as EdgeSet exposing (EdgeSet)
 import OpenSolid.Triangle3d as Triangle3d
 import OpenSolid.Vector3d as Vector3d
 import OpenSolid.WebGL.Camera as Camera exposing (Camera)
@@ -91,6 +90,26 @@ type alias CachedEdge =
 
 type alias EdgeAttributes =
     ( CurveVertexAttributes, CurveVertexAttributes )
+
+
+type Sketch3d
+    = Surface
+        { mesh : WebGL.Mesh SurfaceVertexAttributes
+        , cachedFaces : List CachedFace
+        , boundingBox : BoundingBox3d
+        }
+    | Curve
+        { mesh : WebGL.Mesh CurveVertexAttributes
+        , cachedEdges : List CachedEdge
+        , boundingBox : BoundingBox3d
+        }
+    | Placed
+        { placementFrame : Frame3d
+        , isMirror : Bool
+        , sketch : Sketch3d
+        }
+    | Group (List Sketch3d)
+    | Empty
 
 
 toVec3 : Color -> Vec3
@@ -178,26 +197,6 @@ toEdgeAttributes ( cachedStartVertex, cachedEndVertex ) =
     )
 
 
-type Sketch3d
-    = Surface
-        { mesh : WebGL.Mesh SurfaceVertexAttributes
-        , cachedFaces : List CachedFace
-        , boundingBox : BoundingBox3d
-        }
-    | Curve
-        { mesh : WebGL.Mesh CurveVertexAttributes
-        , cachedEdges : List CachedEdge
-        , boundingBox : BoundingBox3d
-        }
-    | Placed
-        { placementFrame : Frame3d
-        , isMirror : Bool
-        , sketch : Sketch3d
-        }
-    | Group (List Sketch3d)
-    | Empty
-
-
 faceBounds : Face -> BoundingBox3d
 faceBounds ( firstVertex, secondVertex, thirdVertex ) =
     Triangle3d.boundingBox <|
@@ -211,6 +210,157 @@ faceBounds ( firstVertex, secondVertex, thirdVertex ) =
 edgeBounds : Edge -> BoundingBox3d
 edgeBounds ( startPosition, endPosition ) =
     Point3d.hull startPosition endPosition
+
+
+infinity : Float
+infinity =
+    1.0 / 0.0
+
+
+iii : ( Float, Float, Float )
+iii =
+    ( infinity, infinity, infinity )
+
+
+zii : ( Float, Float, Float )
+zii =
+    ( 0, infinity, infinity )
+
+
+izi : ( Float, Float, Float )
+izi =
+    ( infinity, 0, infinity )
+
+
+iiz : ( Float, Float, Float )
+iiz =
+    ( infinity, infinity, 0 )
+
+
+distanceFromEdge : Point3d -> Point3d -> Point3d -> Float
+distanceFromEdge startPoint endPoint point =
+    case Point3d.directionFrom startPoint endPoint of
+        Just edgeDirection ->
+            let
+                axis =
+                    Axis3d
+                        { originPoint = startPoint
+                        , direction = edgeDirection
+                        }
+            in
+            Point3d.radialDistanceFrom axis point
+
+        Nothing ->
+            Point3d.distanceFrom startPoint point
+
+
+assembleFace : EdgeSet -> Int -> Int -> Int -> Point3d -> Point3d -> Point3d -> Face
+assembleFace edgeSet i1 i2 i3 p1 p2 p3 =
+    let
+        edgeA =
+            EdgeSet.isOpenEdge i1 i2 edgeSet
+
+        edgeB =
+            EdgeSet.isOpenEdge i2 i3 edgeSet
+
+        edgeC =
+            EdgeSet.isOpenEdge i3 i1 edgeSet
+
+        vertex1 =
+            EdgeSet.isEdgeVertex i1 edgeSet
+
+        vertex2 =
+            EdgeSet.isEdgeVertex i2 edgeSet
+
+        vertex3 =
+            EdgeSet.isEdgeVertex i3 edgeSet
+
+        d1A =
+            if edgeA then
+                0
+            else
+                infinity
+
+        d1B =
+            if edgeB then
+                p1 |> distanceFromEdge p2 p3
+            else
+                infinity
+
+        d1C =
+            if edgeC then
+                0
+            else
+                infinity
+
+        d2A =
+            if edgeA then
+                0
+            else
+                infinity
+
+        d2B =
+            if edgeB then
+                0
+            else
+                infinity
+
+        d2C =
+            if edgeC then
+                p2 |> distanceFromEdge p1 p3
+            else
+                infinity
+
+        d3A =
+            if edgeA then
+                p3 |> distanceFromEdge p1 p2
+            else
+                infinity
+
+        d3B =
+            if edgeB then
+                0
+            else
+                infinity
+
+        d3C =
+            if edgeC then
+                0
+            else
+                infinity
+    in
+    ( { position = p1, edgeDistances = ( d1A, d1B, d1C ) }
+    , { position = p2, edgeDistances = ( d2A, d2B, d2C ) }
+    , { position = p3, edgeDistances = ( d3A, d3B, d3C ) }
+    )
+
+
+indexedTriangles : Color -> List Point3d -> List ( Int, Int, Int ) -> Sketch3d
+indexedTriangles color points faceIndices =
+    let
+        pointArray =
+            Array.fromList points
+
+        edgeSet =
+            EdgeSet.build faceIndices
+
+        toFace ( i1, i2, i3 ) =
+            Maybe.map3
+                (assembleFace edgeSet i1 i2 i3)
+                (Array.get i1 pointArray)
+                (Array.get i2 pointArray)
+                (Array.get i3 pointArray)
+
+        faces =
+            List.filterMap toFace faceIndices
+
+        toEdge ( i, j ) =
+            Maybe.map2 (,) (Array.get i pointArray) (Array.get j pointArray)
+
+        edges =
+            List.filterMap toEdge (EdgeSet.openEdges edgeSet)
+    in
+    group [ surface color faces, curve (Color.rgba 0 0 0 0.5) edges ]
 
 
 surface : Color -> List Face -> Sketch3d

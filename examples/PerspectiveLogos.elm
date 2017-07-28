@@ -21,10 +21,10 @@ view : Float -> Html Float
 view angleInDegrees =
     let
         width =
-            512
+            1024
 
         height =
-            512
+            768
 
         eyePoint =
             Point3d ( 10, 0, 0 )

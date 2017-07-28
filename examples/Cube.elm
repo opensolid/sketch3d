@@ -13,45 +13,12 @@ import OpenSolid.WebGL.Frame3d as Frame3d
 rectangle : Color -> Point3d -> Point3d -> Point3d -> Point3d -> Sketch3d
 rectangle color p0 p1 p2 p3 =
     let
-        d01 =
-            Point3d.distanceFrom p0 p1
-
-        d12 =
-            Point3d.distanceFrom p1 p2
-
-        d23 =
-            Point3d.distanceFrom p2 p3
-
-        d30 =
-            Point3d.distanceFrom p3 p0
-
-        infinity =
-            1.0 / 0.0
-
-        face1 =
-            ( { position = p0, edgeDistances = ( d01, infinity, 0 ) }
-            , { position = p1, edgeDistances = ( 0, infinity, 0 ) }
-            , { position = p2, edgeDistances = ( 0, infinity, d12 ) }
-            )
-
-        face2 =
-            ( { position = p0, edgeDistances = ( d30, 0, infinity ) }
-            , { position = p2, edgeDistances = ( 0, d23, infinity ) }
-            , { position = p3, edgeDistances = ( 0, 0, infinity ) }
-            )
-
         edgeColor =
             Color.rgba 0 0 0 0.5
     in
-    Sketch3d.group
-        [ Sketch3d.surface color [ face1, face2 ]
-        , Sketch3d.curve edgeColor
-            [ ( p0, p1 )
-            , ( p1, p2 )
-            , ( p2, p3 )
-            , ( p3, p0 )
-            ]
-        ]
+    Sketch3d.indexedTriangles color
+        [ p0, p1, p2, p3 ]
+        [ ( 0, 1, 2 ), ( 0, 2, 3 ) ]
 
 
 main : Html msg

@@ -217,41 +217,9 @@ infinity =
     1.0 / 0.0
 
 
-iii : ( Float, Float, Float )
-iii =
+infinities : ( Float, Float, Float )
+infinities =
     ( infinity, infinity, infinity )
-
-
-zii : ( Float, Float, Float )
-zii =
-    ( 0, infinity, infinity )
-
-
-izi : ( Float, Float, Float )
-izi =
-    ( infinity, 0, infinity )
-
-
-iiz : ( Float, Float, Float )
-iiz =
-    ( infinity, infinity, 0 )
-
-
-distanceFromEdge : Point3d -> Point3d -> Point3d -> Float
-distanceFromEdge startPoint endPoint point =
-    case Point3d.directionFrom startPoint endPoint of
-        Just edgeDirection ->
-            let
-                axis =
-                    Axis3d
-                        { originPoint = startPoint
-                        , direction = edgeDirection
-                        }
-            in
-            Point3d.radialDistanceFrom axis point
-
-        Nothing ->
-            Point3d.distanceFrom startPoint point
 
 
 assembleFace : EdgeSet -> Int -> Int -> Int -> Point3d -> Point3d -> Point3d -> Face
@@ -274,65 +242,75 @@ assembleFace edgeSet i1 i2 i3 p1 p2 p3 =
 
         vertex3 =
             EdgeSet.isEdgeVertex i3 edgeSet
-
-        d1A =
-            if edgeA then
-                0
-            else
-                infinity
-
-        d1B =
-            if edgeB then
-                p1 |> distanceFromEdge p2 p3
-            else
-                infinity
-
-        d1C =
-            if edgeC then
-                0
-            else
-                infinity
-
-        d2A =
-            if edgeA then
-                0
-            else
-                infinity
-
-        d2B =
-            if edgeB then
-                0
-            else
-                infinity
-
-        d2C =
-            if edgeC then
-                p2 |> distanceFromEdge p1 p3
-            else
-                infinity
-
-        d3A =
-            if edgeA then
-                p3 |> distanceFromEdge p1 p2
-            else
-                infinity
-
-        d3B =
-            if edgeB then
-                0
-            else
-                infinity
-
-        d3C =
-            if edgeC then
-                0
-            else
-                infinity
     in
-    ( { position = p1, edgeDistances = ( d1A, d1B, d1C ) }
-    , { position = p2, edgeDistances = ( d2A, d2B, d2C ) }
-    , { position = p3, edgeDistances = ( d3A, d3B, d3C ) }
-    )
+    if not (edgeA || edgeB || edgeC || vertex1 || vertex2 || vertex3) then
+        ( { position = p1, edgeDistances = infinities }
+        , { position = p2, edgeDistances = infinities }
+        , { position = p3, edgeDistances = infinities }
+        )
+    else
+        let
+            triangleArea =
+                Triangle3d.area (Triangle3d ( p1, p2, p3 ))
+
+            d1A =
+                if edgeA then
+                    0
+                else
+                    infinity
+
+            d1B =
+                if edgeB then
+                    2 * triangleArea / Point3d.distanceFrom p2 p3
+                else
+                    infinity
+
+            d1C =
+                if edgeC then
+                    0
+                else
+                    infinity
+
+            d2A =
+                if edgeA then
+                    0
+                else
+                    infinity
+
+            d2B =
+                if edgeB then
+                    0
+                else
+                    infinity
+
+            d2C =
+                if edgeC then
+                    2 * triangleArea / Point3d.distanceFrom p1 p3
+                else
+                    infinity
+
+            d3A =
+                if edgeA then
+                    2 * triangleArea / Point3d.distanceFrom p1 p2
+                else
+                    infinity
+
+            d3B =
+                if edgeB then
+                    0
+                else
+                    infinity
+
+            d3C =
+                if edgeC then
+                    0
+                else
+                    infinity
+        in
+        ( { position = p1, edgeDistances = ( d1A, d1B, d1C ) }
+        , { position = p2, edgeDistances = ( d2A, d2B, d2C ) }
+        , { position = p3, edgeDistances = ( d3A, d3B, d3C ) }
+        )
 
 
 indexedTriangles : Color -> List Point3d -> List ( Int, Int, Int ) -> Sketch3d

@@ -212,104 +212,287 @@ edgeBounds ( startPosition, endPosition ) =
     Point3d.hull startPosition endPosition
 
 
-infinity : Float
-infinity =
+inf : Float
+inf =
     1.0 / 0.0
 
 
-infinities : ( Float, Float, Float )
-infinities =
-    ( infinity, infinity, infinity )
+infs : ( Float, Float, Float )
+infs =
+    ( inf, inf, inf )
+
+
+twiceArea p1 p2 p3 =
+    Vector3d.length <|
+        Vector3d.crossProduct
+            (Point3d.vectorFrom p1 p2)
+            (Point3d.vectorFrom p1 p3)
 
 
 assembleFace : EdgeSet -> Int -> Int -> Int -> Point3d -> Point3d -> Point3d -> Face
 assembleFace edgeSet i1 i2 i3 p1 p2 p3 =
-    let
-        edgeA =
-            EdgeSet.isOpenEdge i1 i2 edgeSet
+    if EdgeSet.isEdgeVertex i1 edgeSet then
+        if EdgeSet.isEdgeVertex i2 edgeSet then
+            if EdgeSet.isEdgeVertex i3 edgeSet then
+                -- All vertices are on edges
+                if EdgeSet.isOpenEdge i1 i2 edgeSet then
+                    if EdgeSet.isOpenEdge i1 i3 edgeSet then
+                        if EdgeSet.isOpenEdge i2 i3 edgeSet then
+                            -- e12, e13, e23
+                            let
+                                twoA =
+                                    twiceArea p1 p2 p3
 
-        edgeB =
-            EdgeSet.isOpenEdge i2 i3 edgeSet
+                                d1 =
+                                    twoA / Point3d.distanceFrom p2 p3
 
-        edgeC =
-            EdgeSet.isOpenEdge i3 i1 edgeSet
+                                d2 =
+                                    twoA / Point3d.distanceFrom p1 p3
 
-        vertex1 =
-            EdgeSet.isEdgeVertex i1 edgeSet
+                                d3 =
+                                    twoA / Point3d.distanceFrom p1 p2
+                            in
+                            ( { position = p1, edgeDistances = ( 0, 0, d1 ) }
+                            , { position = p2, edgeDistances = ( 0, d2, 0 ) }
+                            , { position = p3, edgeDistances = ( d3, 0, 0 ) }
+                            )
+                        else
+                            -- e12, e13
+                            let
+                                twoA =
+                                    twiceArea p1 p2 p3
 
-        vertex2 =
-            EdgeSet.isEdgeVertex i2 edgeSet
+                                d2 =
+                                    twoA / Point3d.distanceFrom p1 p3
 
-        vertex3 =
-            EdgeSet.isEdgeVertex i3 edgeSet
-    in
-    if not (edgeA || edgeB || edgeC || vertex1 || vertex2 || vertex3) then
-        ( { position = p1, edgeDistances = infinities }
-        , { position = p2, edgeDistances = infinities }
-        , { position = p3, edgeDistances = infinities }
+                                d3 =
+                                    twoA / Point3d.distanceFrom p1 p2
+                            in
+                            ( { position = p1, edgeDistances = ( 0, 0, inf ) }
+                            , { position = p2, edgeDistances = ( 0, d2, inf ) }
+                            , { position = p3, edgeDistances = ( d3, 0, inf ) }
+                            )
+                    else if EdgeSet.isOpenEdge i2 i3 edgeSet then
+                        -- e12, e23
+                        let
+                            twoA =
+                                twiceArea p1 p2 p3
+
+                            d1 =
+                                twoA / Point3d.distanceFrom p2 p3
+
+                            d3 =
+                                twoA / Point3d.distanceFrom p1 p2
+                        in
+                        ( { position = p1, edgeDistances = ( 0, d1, inf ) }
+                        , { position = p2, edgeDistances = ( 0, 0, inf ) }
+                        , { position = p3, edgeDistances = ( d3, 0, inf ) }
+                        )
+                    else
+                        -- e12, v3
+                        let
+                            d3 =
+                                twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p2
+
+                            d13 =
+                                Point3d.distanceFrom p1 p3
+
+                            d23 =
+                                Point3d.distanceFrom p2 p3
+                        in
+                        ( { position = p1, edgeDistances = ( 0, d13, inf ) }
+                        , { position = p2, edgeDistances = ( 0, d23, inf ) }
+                        , { position = p3, edgeDistances = ( d3, 0, inf ) }
+                        )
+                else if EdgeSet.isOpenEdge i1 i3 edgeSet then
+                    if EdgeSet.isOpenEdge i2 i3 edgeSet then
+                        -- e13, e23
+                        let
+                            twoA =
+                                twiceArea p1 p2 p3
+
+                            d1 =
+                                twoA / Point3d.distanceFrom p2 p3
+
+                            d2 =
+                                twoA / Point3d.distanceFrom p1 p3
+                        in
+                        ( { position = p1, edgeDistances = ( 0, d1, inf ) }
+                        , { position = p2, edgeDistances = ( d2, 0, inf ) }
+                        , { position = p3, edgeDistances = ( 0, 0, inf ) }
+                        )
+                    else
+                        -- e13, v2
+                        let
+                            d2 =
+                                twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p3
+
+                            d12 =
+                                Point3d.distanceFrom p1 p2
+
+                            d23 =
+                                Point3d.distanceFrom p2 p3
+                        in
+                        ( { position = p1, edgeDistances = ( 0, d12, inf ) }
+                        , { position = p2, edgeDistances = ( d2, 0, inf ) }
+                        , { position = p3, edgeDistances = ( 0, d23, inf ) }
+                        )
+                else if EdgeSet.isOpenEdge i2 i3 edgeSet then
+                    -- e23, v1
+                    let
+                        d1 =
+                            twiceArea p1 p2 p3 / Point3d.distanceFrom p2 p3
+
+                        d12 =
+                            Point3d.distanceFrom p1 p2
+
+                        d13 =
+                            Point3d.distanceFrom p1 p3
+                    in
+                    ( { position = p1, edgeDistances = ( d1, 0, inf ) }
+                    , { position = p2, edgeDistances = ( 0, d12, inf ) }
+                    , { position = p3, edgeDistances = ( 0, d13, inf ) }
+                    )
+                else
+                    -- v1, v2, v3
+                    let
+                        d12 =
+                            Point3d.distanceFrom p1 p2
+
+                        d13 =
+                            Point3d.distanceFrom p1 p3
+
+                        d23 =
+                            Point3d.distanceFrom p2 p3
+                    in
+                    ( { position = p1, edgeDistances = ( 0, d12, d13 ) }
+                    , { position = p2, edgeDistances = ( d12, 0, d23 ) }
+                    , { position = p3, edgeDistances = ( d13, d23, 0 ) }
+                    )
+            else if EdgeSet.isOpenEdge i1 i2 edgeSet then
+                -- e12
+                let
+                    d3 =
+                        twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p2
+                in
+                ( { position = p1, edgeDistances = ( 0, inf, inf ) }
+                , { position = p2, edgeDistances = ( 0, inf, inf ) }
+                , { position = p3, edgeDistances = ( d3, inf, inf ) }
+                )
+            else
+                -- v1, v2
+                let
+                    d12 =
+                        Point3d.distanceFrom p1 p2
+
+                    d13 =
+                        Point3d.distanceFrom p1 p3
+
+                    d23 =
+                        Point3d.distanceFrom p2 p3
+                in
+                ( { position = p1, edgeDistances = ( 0, d12, inf ) }
+                , { position = p2, edgeDistances = ( d12, 0, inf ) }
+                , { position = p3, edgeDistances = ( d13, d23, inf ) }
+                )
+        else if EdgeSet.isEdgeVertex i3 edgeSet then
+            if EdgeSet.isOpenEdge i1 i3 edgeSet then
+                -- e13
+                let
+                    d2 =
+                        twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p3
+                in
+                ( { position = p1, edgeDistances = ( 0, inf, inf ) }
+                , { position = p2, edgeDistances = ( d2, inf, inf ) }
+                , { position = p3, edgeDistances = ( 0, inf, inf ) }
+                )
+            else
+                -- v1, v3
+                let
+                    d12 =
+                        Point3d.distanceFrom p1 p2
+
+                    d13 =
+                        Point3d.distanceFrom p1 p3
+
+                    d23 =
+                        Point3d.distanceFrom p2 p3
+                in
+                ( { position = p1, edgeDistances = ( 0, d13, inf ) }
+                , { position = p2, edgeDistances = ( d12, d23, inf ) }
+                , { position = p3, edgeDistances = ( d13, 0, inf ) }
+                )
+        else
+            -- v1
+            let
+                d2 =
+                    Point3d.distanceFrom p1 p2
+
+                d3 =
+                    Point3d.distanceFrom p1 p3
+            in
+            ( { position = p1, edgeDistances = ( 0, inf, inf ) }
+            , { position = p2, edgeDistances = ( d2, inf, inf ) }
+            , { position = p3, edgeDistances = ( d3, inf, inf ) }
+            )
+    else if EdgeSet.isEdgeVertex i2 edgeSet then
+        if EdgeSet.isEdgeVertex i3 edgeSet then
+            if EdgeSet.isOpenEdge i2 i3 edgeSet then
+                -- e23
+                let
+                    d1 =
+                        twiceArea p1 p2 p3 / Point3d.distanceFrom p2 p3
+                in
+                ( { position = p1, edgeDistances = ( d1, inf, inf ) }
+                , { position = p2, edgeDistances = ( 0, inf, inf ) }
+                , { position = p3, edgeDistances = ( 0, inf, inf ) }
+                )
+            else
+                -- v2, v3
+                let
+                    d12 =
+                        Point3d.distanceFrom p1 p2
+
+                    d13 =
+                        Point3d.distanceFrom p1 p3
+
+                    d23 =
+                        Point3d.distanceFrom p2 p3
+                in
+                ( { position = p1, edgeDistances = ( d12, d13, inf ) }
+                , { position = p2, edgeDistances = ( 0, d23, inf ) }
+                , { position = p3, edgeDistances = ( d23, 0, inf ) }
+                )
+        else
+            -- v2
+            let
+                d1 =
+                    Point3d.distanceFrom p2 p1
+
+                d3 =
+                    Point3d.distanceFrom p2 p3
+            in
+            ( { position = p1, edgeDistances = ( d1, inf, inf ) }
+            , { position = p2, edgeDistances = ( 0, inf, inf ) }
+            , { position = p3, edgeDistances = ( d3, inf, inf ) }
+            )
+    else if EdgeSet.isEdgeVertex i3 edgeSet then
+        -- v3
+        let
+            d1 =
+                Point3d.distanceFrom p3 p1
+
+            d2 =
+                Point3d.distanceFrom p3 p2
+        in
+        ( { position = p1, edgeDistances = ( d1, inf, inf ) }
+        , { position = p2, edgeDistances = ( d2, inf, inf ) }
+        , { position = p3, edgeDistances = ( 0, inf, inf ) }
         )
     else
-        let
-            triangleArea =
-                Triangle3d.area (Triangle3d ( p1, p2, p3 ))
-
-            d1A =
-                if edgeA then
-                    0
-                else
-                    infinity
-
-            d1B =
-                if edgeB then
-                    2 * triangleArea / Point3d.distanceFrom p2 p3
-                else
-                    infinity
-
-            d1C =
-                if edgeC then
-                    0
-                else
-                    infinity
-
-            d2A =
-                if edgeA then
-                    0
-                else
-                    infinity
-
-            d2B =
-                if edgeB then
-                    0
-                else
-                    infinity
-
-            d2C =
-                if edgeC then
-                    2 * triangleArea / Point3d.distanceFrom p1 p3
-                else
-                    infinity
-
-            d3A =
-                if edgeA then
-                    2 * triangleArea / Point3d.distanceFrom p1 p2
-                else
-                    infinity
-
-            d3B =
-                if edgeB then
-                    0
-                else
-                    infinity
-
-            d3C =
-                if edgeC then
-                    0
-                else
-                    infinity
-        in
-        ( { position = p1, edgeDistances = ( d1A, d1B, d1C ) }
-        , { position = p2, edgeDistances = ( d2A, d2B, d2C ) }
-        , { position = p3, edgeDistances = ( d3A, d3B, d3C ) }
+        ( { position = p1, edgeDistances = infs }
+        , { position = p2, edgeDistances = infs }
+        , { position = p3, edgeDistances = infs }
         )
 
 

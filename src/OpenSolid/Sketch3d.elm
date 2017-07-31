@@ -6,6 +6,7 @@ module OpenSolid.Sketch3d
         , indexedTriangles
         , mirrorAcross
         , placeIn
+        , points
         , relativeTo
         , render
         , rotateAround
@@ -92,6 +93,22 @@ type alias EdgeAttributes =
     ( CurveVertexAttributes, CurveVertexAttributes )
 
 
+type alias CachedPoint =
+    { position : Point3d
+    , fill : Vec3
+    , stroke : Vec3
+    , radius : Float
+    }
+
+
+type alias PointAttributes =
+    { position : Vec3
+    , fill : Vec3
+    , stroke : Vec3
+    , radius : Float
+    }
+
+
 type Sketch3d
     = Surface
         { mesh : WebGL.Mesh SurfaceVertexAttributes
@@ -101,6 +118,11 @@ type Sketch3d
     | Curve
         { mesh : WebGL.Mesh CurveVertexAttributes
         , cachedEdges : List CachedEdge
+        , boundingBox : BoundingBox3d
+        }
+    | Points
+        { mesh : WebGL.Mesh PointAttributes
+        , cachedPoints : List CachedPoint
         , boundingBox : BoundingBox3d
         }
     | Placed
@@ -195,6 +217,24 @@ toEdgeAttributes ( cachedStartVertex, cachedEndVertex ) =
     ( toCurveVertexAttributes cachedStartVertex
     , toCurveVertexAttributes cachedEndVertex
     )
+
+
+toCachedPoint : Float -> Vec3 -> Vec3 -> Point3d -> CachedPoint
+toCachedPoint radius fill stroke point =
+    { position = point
+    , fill = fill
+    , stroke = stroke
+    , radius = radius
+    }
+
+
+toPointAttributes : CachedPoint -> PointAttributes
+toPointAttributes cachedPoint =
+    { position = Point3d.toVec3 cachedPoint.position
+    , fill = cachedPoint.fill
+    , stroke = cachedPoint.stroke
+    , radius = cachedPoint.radius
+    }
 
 
 faceBounds : Face -> BoundingBox3d
@@ -572,6 +612,36 @@ curve color edges =
             Empty
 
 
+points : Float -> { fill : Color, stroke : Color } -> List Point3d -> Sketch3d
+points radius colors points_ =
+    case BoundingBox3d.containing points_ of
+        Just boundingBox ->
+            let
+                fill =
+                    toVec3 colors.fill
+
+                stroke =
+                    toVec3 colors.stroke
+
+                cachedPoints =
+                    List.map (toCachedPoint radius fill stroke) points_
+
+                pointAttributes =
+                    List.map toPointAttributes cachedPoints
+
+                mesh =
+                    WebGL.points pointAttributes
+            in
+            Points
+                { mesh = mesh
+                , cachedPoints = cachedPoints
+                , boundingBox = boundingBox
+                }
+
+        Nothing ->
+            Empty
+
+
 group : List Sketch3d -> Sketch3d
 group =
     Group
@@ -588,6 +658,13 @@ transformBy frameTransformation isMirror sketch =
                 }
 
         Curve _ ->
+            Placed
+                { placementFrame = frameTransformation Frame3d.xyz
+                , isMirror = isMirror
+                , sketch = sketch
+                }
+
+        Points _ ->
             Placed
                 { placementFrame = frameTransformation Frame3d.xyz
                 , isMirror = isMirror
@@ -812,6 +889,85 @@ curveToEntity camera placementFrame mesh =
     WebGL.entity curveVertexShader curveFragmentShader mesh uniforms
 
 
+type alias PointUniforms =
+    { modelViewProjectionMatrix : Mat4
+    }
+
+
+type alias PointVaryings =
+    { interpolatedFill : Vec3
+    , interpolatedStroke : Vec3
+    , interpolatedRadius : Float
+    }
+
+
+pointVertexShader : WebGL.Shader PointAttributes PointUniforms PointVaryings
+pointVertexShader =
+    [glsl|
+        attribute vec3 position;
+        attribute vec3 fill;
+        attribute vec3 stroke;
+        attribute float radius;
+
+        uniform mat4 modelViewProjectionMatrix;
+
+        varying vec3 interpolatedFill;
+        varying vec3 interpolatedStroke;
+        varying float interpolatedRadius;
+
+        void main() {
+            gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
+            gl_PointSize = 2.0 * radius;
+        }
+    |]
+
+
+pointFragmentShader : WebGL.Shader {} PointUniforms PointVaryings
+pointFragmentShader =
+    [glsl|
+        precision mediump float;
+
+        varying vec3 interpolatedFill;
+        varying vec3 interpolatedStroke;
+        varying float interpolatedRadius;
+
+        void main() {
+            float radius = interpolatedRadius;
+            vec3 fill = interpolatedFill;
+            vec3 stroke = interpolatedStroke;
+            float x = (2.0 * gl_PointCoord.x - 1.0);
+            float y = (1.0 - 2.0 * gl_PointCoord.y);
+            float r2 = x * x + y * y;
+            float r = sqrt(r2);
+            float t = clamp(0.5 * (r - radius), 0.0, 1.0);
+            if (r > 1.0) {
+                discard;
+            }
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            //gl_FragColor = vec4(mix(fill, stroke, t), 1.0);
+        }
+    |]
+
+
+pointsToEntity : Camera -> Frame3d -> WebGL.Mesh PointAttributes -> WebGL.Entity
+pointsToEntity camera placementFrame mesh =
+    let
+        modelViewMatrix =
+            Frame3d.modelViewMatrix (Camera.frame camera) placementFrame
+
+        projectionMatrix =
+            Camera.projectionMatrix camera
+
+        modelViewProjectionMatrix =
+            Math.Matrix4.mul projectionMatrix modelViewMatrix
+
+        uniforms =
+            { modelViewProjectionMatrix = modelViewProjectionMatrix
+            }
+    in
+    WebGL.entity pointVertexShader pointFragmentShader mesh uniforms
+
+
 collectEntities : Camera -> Float -> Frame3d -> Bool -> Sketch3d -> List WebGL.Entity -> List WebGL.Entity
 collectEntities camera pixelScale currentFrame currentMirror sketch accumulated =
     case sketch of
@@ -820,6 +976,9 @@ collectEntities camera pixelScale currentFrame currentMirror sketch accumulated 
 
         Curve { mesh } ->
             curveToEntity camera currentFrame mesh :: accumulated
+
+        Points { mesh } ->
+            pointsToEntity camera currentFrame mesh :: accumulated
 
         Placed properties ->
             collectEntities

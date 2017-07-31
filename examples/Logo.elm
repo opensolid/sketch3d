@@ -178,6 +178,11 @@ sketch =
                 [ ( 3, 0, 5 )
                 , ( 3, 5, 4 )
                 ]
+
+        points =
+            Sketch3d.points 10
+                { fill = Color.white, stroke = Color.black }
+                vertices
     in
     Sketch3d.group
         [ leftFace
@@ -187,4 +192,5 @@ sketch =
         , backLeftFace
         , backRightFace
         , bottomFace
+        , points
         ]

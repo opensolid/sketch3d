@@ -95,16 +95,14 @@ type alias EdgeAttributes =
 
 type alias CachedPoint =
     { position : Point3d
-    , fill : Vec3
-    , stroke : Vec3
+    , color : Vec4
     , radius : Float
     }
 
 
 type alias PointAttributes =
     { position : Vec3
-    , fill : Vec3
-    , stroke : Vec3
+    , color : Vec4
     , radius : Float
     }
 
@@ -219,11 +217,10 @@ toEdgeAttributes ( cachedStartVertex, cachedEndVertex ) =
     )
 
 
-toCachedPoint : Float -> Vec3 -> Vec3 -> Point3d -> CachedPoint
-toCachedPoint radius fill stroke point =
+toCachedPoint : Float -> Vec4 -> Point3d -> CachedPoint
+toCachedPoint radius color point =
     { position = point
-    , fill = fill
-    , stroke = stroke
+    , color = color
     , radius = radius
     }
 
@@ -231,8 +228,7 @@ toCachedPoint radius fill stroke point =
 toPointAttributes : CachedPoint -> PointAttributes
 toPointAttributes cachedPoint =
     { position = Point3d.toVec3 cachedPoint.position
-    , fill = cachedPoint.fill
-    , stroke = cachedPoint.stroke
+    , color = cachedPoint.color
     , radius = cachedPoint.radius
     }
 
@@ -612,19 +608,13 @@ curve color edges =
             Empty
 
 
-points : Float -> { fill : Color, stroke : Color } -> List Point3d -> Sketch3d
-points radius colors points_ =
+points : Float -> Color -> List Point3d -> Sketch3d
+points radius color points_ =
     case BoundingBox3d.containing points_ of
         Just boundingBox ->
             let
-                fill =
-                    toVec3 colors.fill
-
-                stroke =
-                    toVec3 colors.stroke
-
                 cachedPoints =
-                    List.map (toCachedPoint radius fill stroke) points_
+                    List.map (toCachedPoint radius (toVec4 color)) points_
 
                 pointAttributes =
                     List.map toPointAttributes cachedPoints
@@ -895,9 +885,7 @@ type alias PointUniforms =
 
 
 type alias PointVaryings =
-    { interpolatedFill : Vec3
-    , interpolatedStroke : Vec3
-    , interpolatedRadius : Float
+    { interpolatedColor : Vec4
     }
 
 
@@ -905,19 +893,17 @@ pointVertexShader : WebGL.Shader PointAttributes PointUniforms PointVaryings
 pointVertexShader =
     [glsl|
         attribute vec3 position;
-        attribute vec3 fill;
-        attribute vec3 stroke;
         attribute float radius;
+        attribute vec4 color;
 
         uniform mat4 modelViewProjectionMatrix;
 
-        varying vec3 interpolatedFill;
-        varying vec3 interpolatedStroke;
-        varying float interpolatedRadius;
+        varying vec4 interpolatedColor;
 
         void main() {
             gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
             gl_PointSize = 2.0 * radius;
+            interpolatedColor = color;
         }
     |]
 
@@ -927,24 +913,15 @@ pointFragmentShader =
     [glsl|
         precision mediump float;
 
-        varying vec3 interpolatedFill;
-        varying vec3 interpolatedStroke;
-        varying float interpolatedRadius;
+        varying vec4 interpolatedColor;
 
         void main() {
-            float radius = interpolatedRadius;
-            vec3 fill = interpolatedFill;
-            vec3 stroke = interpolatedStroke;
             float x = (2.0 * gl_PointCoord.x - 1.0);
             float y = (1.0 - 2.0 * gl_PointCoord.y);
-            float r2 = x * x + y * y;
-            float r = sqrt(r2);
-            float t = clamp(0.5 * (r - radius), 0.0, 1.0);
-            if (r > 1.0) {
+            if (x * x + y * y > 1.0) {
                 discard;
             }
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            //gl_FragColor = vec4(mix(fill, stroke, t), 1.0);
+            gl_FragColor = interpolatedColor;
         }
     |]
 

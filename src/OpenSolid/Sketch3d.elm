@@ -1000,7 +1000,12 @@ render camera sketch =
         entities =
             collectEntities camera pixelScale Frame3d.xyz False sketch []
     in
-    WebGL.toHtml
+    WebGL.toHtmlWith
+        [ WebGL.alpha True
+        , WebGL.antialias
+        , WebGL.depth 1
+        , WebGL.standardDerivatives
+        ]
         [ Html.Attributes.width (2 * round width)
         , Html.Attributes.height (2 * round height)
         , Html.Attributes.style

@@ -771,6 +771,7 @@ surfaceFragmentShader =
             float distance2 = interpolatedEdgeDistances.y;
             float distance3 = interpolatedEdgeDistances.z;
 
+        #ifdef GL_OES_standard_derivatives
             float gradientSlope1 = length(vec2(dFdx(distance1), dFdy(distance1)));
             float gradientSlope2 = length(vec2(dFdx(distance2), dFdy(distance2)));
             float gradientSlope3 = length(vec2(dFdx(distance3), dFdy(distance3)));
@@ -778,6 +779,11 @@ surfaceFragmentShader =
             float pixelDistance1 = distance1 / gradientSlope1;
             float pixelDistance2 = distance2 / gradientSlope2;
             float pixelDistance3 = distance3 / gradientSlope3;
+        #else
+            float pixelDistance1 = distance1 * interpolatedPixelsPerUnit;
+            float pixelDistance2 = distance2 * interpolatedPixelsPerUnit;
+            float pixelDistance3 = distance3 * interpolatedPixelsPerUnit;
+        #endif
 
             float pixelDistance = min(pixelDistance1, min(pixelDistance2, pixelDistance3));
             float colorScale = clamp(pixelDistance, 0.0, 1.0);

@@ -180,9 +180,7 @@ sketch =
                 ]
 
         points =
-            Sketch3d.points 10
-                { fill = Color.white, stroke = Color.black }
-                vertices
+            Sketch3d.points 5 Color.darkBlue vertices
     in
     Sketch3d.group
         [ leftFace

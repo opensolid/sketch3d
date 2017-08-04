@@ -190,5 +190,6 @@ sketch =
         , backLeftFace
         , backRightFace
         , bottomFace
-        , points
+
+        --, points
         ]

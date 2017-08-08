@@ -273,7 +273,7 @@ indexedTriangles color points faceIndices =
         edges =
             List.filterMap toEdge (EdgeSet.openEdges edgeSet)
     in
-    group [ surface color faces, curve (Color.rgba 0 0 0 0.5) edges ]
+    group [ surface color faces, curve (Color.rgba 127 127 127 1) edges ]
 
 
 surface : Color -> List Face -> Sketch3d

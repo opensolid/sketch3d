@@ -39,20 +39,17 @@ import WebGL.Texture as Texture exposing (Texture)
 
 type alias SurfaceVertex =
     { position : Point3d
-    , edgeDistances : ( Float, Float, Float )
     }
 
 
 type alias CachedSurfaceVertex =
     { position : Point3d
-    , edgeDistances : Vec3
     , color : Vec3
     }
 
 
 type alias SurfaceVertexAttributes =
     { position : Vec3
-    , edgeDistances : Vec3
     , color : Vec3
     }
 
@@ -160,7 +157,6 @@ toVec4 color_ =
 toCachedSurfaceVertex : Vec3 -> SurfaceVertex -> CachedSurfaceVertex
 toCachedSurfaceVertex color surfaceVertex =
     { position = surfaceVertex.position
-    , edgeDistances = Math.Vector3.fromTuple surfaceVertex.edgeDistances
     , color = color
     }
 
@@ -168,7 +164,6 @@ toCachedSurfaceVertex color surfaceVertex =
 toSurfaceVertexAttributes : CachedSurfaceVertex -> SurfaceVertexAttributes
 toSurfaceVertexAttributes cachedSurfaceVertex =
     { position = Point3d.toVec3 cachedSurfaceVertex.position
-    , edgeDistances = cachedSurfaceVertex.edgeDistances
     , color = cachedSurfaceVertex.color
     }
 
@@ -248,290 +243,6 @@ edgeBounds ( startPosition, endPosition ) =
     Point3d.hull startPosition endPosition
 
 
-inf : Float
-inf =
-    1.0 / 0.0
-
-
-infs : ( Float, Float, Float )
-infs =
-    ( inf, inf, inf )
-
-
-twiceArea p1 p2 p3 =
-    Vector3d.length <|
-        Vector3d.crossProduct
-            (Point3d.vectorFrom p1 p2)
-            (Point3d.vectorFrom p1 p3)
-
-
-assembleFace : EdgeSet -> Int -> Int -> Int -> Point3d -> Point3d -> Point3d -> Face
-assembleFace edgeSet i1 i2 i3 p1 p2 p3 =
-    if EdgeSet.isEdgeVertex i1 edgeSet then
-        if EdgeSet.isEdgeVertex i2 edgeSet then
-            if EdgeSet.isEdgeVertex i3 edgeSet then
-                -- All vertices are on edges
-                if EdgeSet.isOpenEdge i1 i2 edgeSet then
-                    if EdgeSet.isOpenEdge i1 i3 edgeSet then
-                        if EdgeSet.isOpenEdge i2 i3 edgeSet then
-                            -- e12, e13, e23
-                            let
-                                twoA =
-                                    twiceArea p1 p2 p3
-
-                                d1 =
-                                    twoA / Point3d.distanceFrom p2 p3
-
-                                d2 =
-                                    twoA / Point3d.distanceFrom p1 p3
-
-                                d3 =
-                                    twoA / Point3d.distanceFrom p1 p2
-                            in
-                            ( { position = p1, edgeDistances = ( 0, 0, d1 ) }
-                            , { position = p2, edgeDistances = ( 0, d2, 0 ) }
-                            , { position = p3, edgeDistances = ( d3, 0, 0 ) }
-                            )
-                        else
-                            -- e12, e13
-                            let
-                                twoA =
-                                    twiceArea p1 p2 p3
-
-                                d2 =
-                                    twoA / Point3d.distanceFrom p1 p3
-
-                                d3 =
-                                    twoA / Point3d.distanceFrom p1 p2
-                            in
-                            ( { position = p1, edgeDistances = ( 0, 0, inf ) }
-                            , { position = p2, edgeDistances = ( 0, d2, inf ) }
-                            , { position = p3, edgeDistances = ( d3, 0, inf ) }
-                            )
-                    else if EdgeSet.isOpenEdge i2 i3 edgeSet then
-                        -- e12, e23
-                        let
-                            twoA =
-                                twiceArea p1 p2 p3
-
-                            d1 =
-                                twoA / Point3d.distanceFrom p2 p3
-
-                            d3 =
-                                twoA / Point3d.distanceFrom p1 p2
-                        in
-                        ( { position = p1, edgeDistances = ( 0, d1, inf ) }
-                        , { position = p2, edgeDistances = ( 0, 0, inf ) }
-                        , { position = p3, edgeDistances = ( d3, 0, inf ) }
-                        )
-                    else
-                        -- e12, v3
-                        let
-                            d3 =
-                                twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p2
-
-                            d13 =
-                                Point3d.distanceFrom p1 p3
-
-                            d23 =
-                                Point3d.distanceFrom p2 p3
-                        in
-                        ( { position = p1, edgeDistances = ( 0, d13, inf ) }
-                        , { position = p2, edgeDistances = ( 0, d23, inf ) }
-                        , { position = p3, edgeDistances = ( d3, 0, inf ) }
-                        )
-                else if EdgeSet.isOpenEdge i1 i3 edgeSet then
-                    if EdgeSet.isOpenEdge i2 i3 edgeSet then
-                        -- e13, e23
-                        let
-                            twoA =
-                                twiceArea p1 p2 p3
-
-                            d1 =
-                                twoA / Point3d.distanceFrom p2 p3
-
-                            d2 =
-                                twoA / Point3d.distanceFrom p1 p3
-                        in
-                        ( { position = p1, edgeDistances = ( 0, d1, inf ) }
-                        , { position = p2, edgeDistances = ( d2, 0, inf ) }
-                        , { position = p3, edgeDistances = ( 0, 0, inf ) }
-                        )
-                    else
-                        -- e13, v2
-                        let
-                            d2 =
-                                twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p3
-
-                            d12 =
-                                Point3d.distanceFrom p1 p2
-
-                            d23 =
-                                Point3d.distanceFrom p2 p3
-                        in
-                        ( { position = p1, edgeDistances = ( 0, d12, inf ) }
-                        , { position = p2, edgeDistances = ( d2, 0, inf ) }
-                        , { position = p3, edgeDistances = ( 0, d23, inf ) }
-                        )
-                else if EdgeSet.isOpenEdge i2 i3 edgeSet then
-                    -- e23, v1
-                    let
-                        d1 =
-                            twiceArea p1 p2 p3 / Point3d.distanceFrom p2 p3
-
-                        d12 =
-                            Point3d.distanceFrom p1 p2
-
-                        d13 =
-                            Point3d.distanceFrom p1 p3
-                    in
-                    ( { position = p1, edgeDistances = ( d1, 0, inf ) }
-                    , { position = p2, edgeDistances = ( 0, d12, inf ) }
-                    , { position = p3, edgeDistances = ( 0, d13, inf ) }
-                    )
-                else
-                    -- v1, v2, v3
-                    let
-                        d12 =
-                            Point3d.distanceFrom p1 p2
-
-                        d13 =
-                            Point3d.distanceFrom p1 p3
-
-                        d23 =
-                            Point3d.distanceFrom p2 p3
-                    in
-                    ( { position = p1, edgeDistances = ( 0, d12, d13 ) }
-                    , { position = p2, edgeDistances = ( d12, 0, d23 ) }
-                    , { position = p3, edgeDistances = ( d13, d23, 0 ) }
-                    )
-            else if EdgeSet.isOpenEdge i1 i2 edgeSet then
-                -- e12
-                let
-                    d3 =
-                        twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p2
-                in
-                ( { position = p1, edgeDistances = ( 0, inf, inf ) }
-                , { position = p2, edgeDistances = ( 0, inf, inf ) }
-                , { position = p3, edgeDistances = ( d3, inf, inf ) }
-                )
-            else
-                -- v1, v2
-                let
-                    d12 =
-                        Point3d.distanceFrom p1 p2
-
-                    d13 =
-                        Point3d.distanceFrom p1 p3
-
-                    d23 =
-                        Point3d.distanceFrom p2 p3
-                in
-                ( { position = p1, edgeDistances = ( 0, d12, inf ) }
-                , { position = p2, edgeDistances = ( d12, 0, inf ) }
-                , { position = p3, edgeDistances = ( d13, d23, inf ) }
-                )
-        else if EdgeSet.isEdgeVertex i3 edgeSet then
-            if EdgeSet.isOpenEdge i1 i3 edgeSet then
-                -- e13
-                let
-                    d2 =
-                        twiceArea p1 p2 p3 / Point3d.distanceFrom p1 p3
-                in
-                ( { position = p1, edgeDistances = ( 0, inf, inf ) }
-                , { position = p2, edgeDistances = ( d2, inf, inf ) }
-                , { position = p3, edgeDistances = ( 0, inf, inf ) }
-                )
-            else
-                -- v1, v3
-                let
-                    d12 =
-                        Point3d.distanceFrom p1 p2
-
-                    d13 =
-                        Point3d.distanceFrom p1 p3
-
-                    d23 =
-                        Point3d.distanceFrom p2 p3
-                in
-                ( { position = p1, edgeDistances = ( 0, d13, inf ) }
-                , { position = p2, edgeDistances = ( d12, d23, inf ) }
-                , { position = p3, edgeDistances = ( d13, 0, inf ) }
-                )
-        else
-            -- v1
-            let
-                d2 =
-                    Point3d.distanceFrom p1 p2
-
-                d3 =
-                    Point3d.distanceFrom p1 p3
-            in
-            ( { position = p1, edgeDistances = ( 0, inf, inf ) }
-            , { position = p2, edgeDistances = ( d2, inf, inf ) }
-            , { position = p3, edgeDistances = ( d3, inf, inf ) }
-            )
-    else if EdgeSet.isEdgeVertex i2 edgeSet then
-        if EdgeSet.isEdgeVertex i3 edgeSet then
-            if EdgeSet.isOpenEdge i2 i3 edgeSet then
-                -- e23
-                let
-                    d1 =
-                        twiceArea p1 p2 p3 / Point3d.distanceFrom p2 p3
-                in
-                ( { position = p1, edgeDistances = ( d1, inf, inf ) }
-                , { position = p2, edgeDistances = ( 0, inf, inf ) }
-                , { position = p3, edgeDistances = ( 0, inf, inf ) }
-                )
-            else
-                -- v2, v3
-                let
-                    d12 =
-                        Point3d.distanceFrom p1 p2
-
-                    d13 =
-                        Point3d.distanceFrom p1 p3
-
-                    d23 =
-                        Point3d.distanceFrom p2 p3
-                in
-                ( { position = p1, edgeDistances = ( d12, d13, inf ) }
-                , { position = p2, edgeDistances = ( 0, d23, inf ) }
-                , { position = p3, edgeDistances = ( d23, 0, inf ) }
-                )
-        else
-            -- v2
-            let
-                d1 =
-                    Point3d.distanceFrom p2 p1
-
-                d3 =
-                    Point3d.distanceFrom p2 p3
-            in
-            ( { position = p1, edgeDistances = ( d1, inf, inf ) }
-            , { position = p2, edgeDistances = ( 0, inf, inf ) }
-            , { position = p3, edgeDistances = ( d3, inf, inf ) }
-            )
-    else if EdgeSet.isEdgeVertex i3 edgeSet then
-        -- v3
-        let
-            d1 =
-                Point3d.distanceFrom p3 p1
-
-            d2 =
-                Point3d.distanceFrom p3 p2
-        in
-        ( { position = p1, edgeDistances = ( d1, inf, inf ) }
-        , { position = p2, edgeDistances = ( d2, inf, inf ) }
-        , { position = p3, edgeDistances = ( 0, inf, inf ) }
-        )
-    else
-        ( { position = p1, edgeDistances = infs }
-        , { position = p2, edgeDistances = infs }
-        , { position = p3, edgeDistances = infs }
-        )
-
-
 indexedTriangles : Color -> List Point3d -> List ( Int, Int, Int ) -> Sketch3d
 indexedTriangles color points faceIndices =
     let
@@ -543,7 +254,12 @@ indexedTriangles color points faceIndices =
 
         toFace ( i1, i2, i3 ) =
             Maybe.map3
-                (assembleFace edgeSet i1 i2 i3)
+                (\p1 p2 p3 ->
+                    ( { position = p1 }
+                    , { position = p2 }
+                    , { position = p3 }
+                    )
+                )
                 (Array.get i1 pointArray)
                 (Array.get i2 pointArray)
                 (Array.get i3 pointArray)
@@ -720,15 +436,12 @@ relativeTo frame sketch =
 
 
 type alias SurfaceUniforms =
-    { pixelScale : Float
-    , modelViewProjectionMatrix : Mat4
+    { modelViewProjectionMatrix : Mat4
     }
 
 
 type alias SurfaceVaryings =
     { interpolatedColor : Vec3
-    , interpolatedEdgeDistances : Vec3
-    , interpolatedPixelsPerUnit : Float
     }
 
 
@@ -737,58 +450,29 @@ surfaceVertexShader =
     [glsl|
         attribute vec3 position;
         attribute vec3 color;
-        attribute vec3 edgeDistances;
 
-        uniform float pixelScale;
         uniform mat4 modelViewProjectionMatrix;
 
         varying vec3 interpolatedColor;
-        varying vec3 interpolatedEdgeDistances;
-        varying float interpolatedPixelsPerUnit;
 
         void main () {
             gl_Position = modelViewProjectionMatrix * vec4(position, 1.0);
             interpolatedColor = color;
-            interpolatedEdgeDistances = edgeDistances;
-            interpolatedPixelsPerUnit = pixelScale / gl_Position.w;
         }
     |]
 
 
 surfaceFragmentShader : WebGL.Shader {} SurfaceUniforms SurfaceVaryings
 surfaceFragmentShader =
-    WebGL.unsafeShader
-        """#extension GL_OES_standard_derivatives : enable
-
-        precision mediump float;
+    [glsl|
+        precision highp float;
 
         varying vec3 interpolatedColor;
-        varying vec3 interpolatedEdgeDistances;
-        varying float interpolatedPixelsPerUnit;
 
         void main() {
-            float distance1 = interpolatedEdgeDistances.x;
-            float distance2 = interpolatedEdgeDistances.y;
-            float distance3 = interpolatedEdgeDistances.z;
-
-        #ifdef GL_OES_standard_derivatives
-            float gradientSlope1 = length(vec2(dFdx(distance1), dFdy(distance1)));
-            float gradientSlope2 = length(vec2(dFdx(distance2), dFdy(distance2)));
-            float gradientSlope3 = length(vec2(dFdx(distance3), dFdy(distance3)));
-
-            float pixelDistance1 = distance1 / gradientSlope1;
-            float pixelDistance2 = distance2 / gradientSlope2;
-            float pixelDistance3 = distance3 / gradientSlope3;
-        #else
-            float pixelDistance1 = distance1 * interpolatedPixelsPerUnit;
-            float pixelDistance2 = distance2 * interpolatedPixelsPerUnit;
-            float pixelDistance3 = distance3 * interpolatedPixelsPerUnit;
-        #endif
-
-            float pixelDistance = min(pixelDistance1, min(pixelDistance2, pixelDistance3));
-            float colorScale = clamp(pixelDistance, 0.0, 1.0);
-            gl_FragColor = vec4(interpolatedColor * colorScale, 1.0);
-        }"""
+            gl_FragColor = vec4(interpolatedColor, 1.0);
+        }
+    |]
 
 
 surfaceToEntity : Camera -> Float -> Frame3d -> Bool -> WebGL.Mesh SurfaceVertexAttributes -> WebGL.Entity
@@ -812,11 +496,11 @@ surfaceToEntity camera pixelScale placementFrame isMirror mesh =
         settings =
             [ WebGL.Settings.DepthTest.default
             , WebGL.Settings.cullFace cullSetting
+            , WebGL.Settings.polygonOffset 1 1
             ]
 
         uniforms =
-            { pixelScale = pixelScale
-            , modelViewProjectionMatrix = modelViewProjectionMatrix
+            { modelViewProjectionMatrix = modelViewProjectionMatrix
             }
     in
     WebGL.entityWith settings
@@ -1004,7 +688,6 @@ render camera sketch =
         [ WebGL.alpha True
         , WebGL.antialias
         , WebGL.depth 1
-        , WebGL.standardDerivatives
         ]
         [ Html.Attributes.width (2 * round width)
         , Html.Attributes.height (2 * round height)

@@ -402,7 +402,7 @@ placeIn : Frame3d -> Sketch3d -> Sketch3d
 placeIn frame sketch =
     let
         isMirror =
-            Frame3d.isRightHanded frame
+            not (Frame3d.isRightHanded frame)
     in
     transformBy (Frame3d.placeIn frame) isMirror sketch
 
@@ -411,7 +411,7 @@ relativeTo : Frame3d -> Sketch3d -> Sketch3d
 relativeTo frame sketch =
     let
         isMirror =
-            Frame3d.isRightHanded frame
+            not (Frame3d.isRightHanded frame)
     in
     transformBy (Frame3d.relativeTo frame) isMirror sketch
 

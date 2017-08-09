@@ -4,8 +4,10 @@ import Color exposing (Color)
 import Html exposing (Html)
 import OpenSolid.Direction3d as Direction3d
 import OpenSolid.Geometry.Types exposing (..)
+import OpenSolid.Mesh as Mesh
 import OpenSolid.Point3d as Point3d
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
+import OpenSolid.Vector3d as Vector3d
 import OpenSolid.WebGL.Camera as Camera
 import OpenSolid.WebGL.Frame3d as Frame3d
 
@@ -15,10 +17,14 @@ rectangle color p0 p1 p2 p3 =
     let
         edgeColor =
             Color.rgba 0 0 0 0.5
+
+        n =
+            Vector3d.zero
     in
-    Sketch3d.indexedTriangles color
-        [ p0, p1, p2, p3 ]
-        [ ( 0, 1, 2 ), ( 0, 2, 3 ) ]
+    Sketch3d.mesh color <|
+        Mesh.fromList
+            [ ( p0, n ), ( p1, n ), ( p2, n ), ( p3, n ) ]
+            [ ( 0, 1, 2 ), ( 0, 2, 3 ) ]
 
 
 main : Html msg
@@ -75,8 +81,11 @@ main =
         rightSurface =
             rectangle green p2 p3 p7 p6
 
+        points =
+            Sketch3d.points 5 Color.darkBlue [ p0, p1, p2, p3, p4, p5, p6, p7 ]
+
         cube =
-            Sketch3d.group [ frontSurface, topSurface, rightSurface ]
+            Sketch3d.group [ frontSurface, topSurface, rightSurface, points ]
 
         edges =
             Sketch3d.group

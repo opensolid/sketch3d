@@ -3,13 +3,14 @@ module OpenSolid.Sketch3d
         ( Sketch3d
         , curve
         , group
-        , indexedTriangles
+        , mesh
         , mirrorAcross
         , placeIn
         , points
         , relativeTo
         , render
         , rotateAround
+        , surface
         , translateBy
         )
 
@@ -24,13 +25,17 @@ import Math.Vector4 exposing (Vec4, vec4)
 import OpenSolid.BoundingBox3d as BoundingBox3d
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
+import OpenSolid.Mesh as Mesh exposing (Mesh)
+import OpenSolid.Parametric.Types exposing (..)
 import OpenSolid.Point3d as Point3d
 import OpenSolid.Sketch3d.EdgeSet as EdgeSet exposing (EdgeSet)
+import OpenSolid.Surface3d as Surface3d
 import OpenSolid.Triangle3d as Triangle3d
 import OpenSolid.Vector3d as Vector3d
 import OpenSolid.WebGL.Camera as Camera exposing (Camera)
 import OpenSolid.WebGL.Frame3d as Frame3d
 import OpenSolid.WebGL.Point3d as Point3d
+import OpenSolid.WebGL.Vector3d as Vector3d
 import WebGL
 import WebGL.Settings
 import WebGL.Settings.DepthTest
@@ -38,32 +43,21 @@ import WebGL.Texture as Texture exposing (Texture)
 
 
 type alias SurfaceVertex =
-    { position : Point3d
-    }
+    ( Point3d, Vector3d )
 
 
 type alias CachedSurfaceVertex =
     { position : Point3d
+    , normal : Vector3d
     , color : Vec3
     }
 
 
 type alias SurfaceVertexAttributes =
     { position : Vec3
+    , normal : Vec3
     , color : Vec3
     }
-
-
-type alias Face =
-    ( SurfaceVertex, SurfaceVertex, SurfaceVertex )
-
-
-type alias CachedFace =
-    ( CachedSurfaceVertex, CachedSurfaceVertex, CachedSurfaceVertex )
-
-
-type alias FaceAttributes =
-    ( SurfaceVertexAttributes, SurfaceVertexAttributes, SurfaceVertexAttributes )
 
 
 type alias CachedCurveVertex =
@@ -107,7 +101,8 @@ type alias PointAttributes =
 type Sketch3d
     = Surface
         { mesh : WebGL.Mesh SurfaceVertexAttributes
-        , cachedFaces : List CachedFace
+        , cachedVertices : List CachedSurfaceVertex
+        , faceIndices : List ( Int, Int, Int )
         , boundingBox : BoundingBox3d
         }
     | Curve
@@ -155,8 +150,9 @@ toVec4 color_ =
 
 
 toCachedSurfaceVertex : Vec3 -> SurfaceVertex -> CachedSurfaceVertex
-toCachedSurfaceVertex color surfaceVertex =
-    { position = surfaceVertex.position
+toCachedSurfaceVertex color ( position, normal ) =
+    { position = position
+    , normal = normal
     , color = color
     }
 
@@ -164,24 +160,9 @@ toCachedSurfaceVertex color surfaceVertex =
 toSurfaceVertexAttributes : CachedSurfaceVertex -> SurfaceVertexAttributes
 toSurfaceVertexAttributes cachedSurfaceVertex =
     { position = Point3d.toVec3 cachedSurfaceVertex.position
+    , normal = Vector3d.toVec3 cachedSurfaceVertex.normal
     , color = cachedSurfaceVertex.color
     }
-
-
-toCachedFace : Vec3 -> Face -> CachedFace
-toCachedFace color ( firstSurfaceVertex, secondSurfaceVertex, thirdSurfaceVertex ) =
-    ( toCachedSurfaceVertex color firstSurfaceVertex
-    , toCachedSurfaceVertex color secondSurfaceVertex
-    , toCachedSurfaceVertex color thirdSurfaceVertex
-    )
-
-
-toFaceAttributes : CachedFace -> FaceAttributes
-toFaceAttributes ( cachedSurfaceVertex1, cachedSurfaceVertex2, cachedSurfaceVertex3 ) =
-    ( toSurfaceVertexAttributes cachedSurfaceVertex1
-    , toSurfaceVertexAttributes cachedSurfaceVertex2
-    , toSurfaceVertexAttributes cachedSurfaceVertex3
-    )
 
 
 toCachedCurveVertex : Vec4 -> Point3d -> CachedCurveVertex
@@ -228,76 +209,76 @@ toPointAttributes cachedPoint =
     }
 
 
-faceBounds : Face -> BoundingBox3d
-faceBounds ( firstVertex, secondVertex, thirdVertex ) =
-    Triangle3d.boundingBox <|
-        Triangle3d
-            ( firstVertex.position
-            , secondVertex.position
-            , thirdVertex.position
-            )
-
-
 edgeBounds : Edge -> BoundingBox3d
 edgeBounds ( startPosition, endPosition ) =
     Point3d.hull startPosition endPosition
 
 
-indexedTriangles : Color -> List Point3d -> List ( Int, Int, Int ) -> Sketch3d
-indexedTriangles color points faceIndices =
+adjustLightness : Float -> Color -> Color
+adjustLightness scale color =
     let
-        pointArray =
-            Array.fromList points
-
-        edgeSet =
-            EdgeSet.build faceIndices
-
-        toFace ( i1, i2, i3 ) =
-            Maybe.map3
-                (\p1 p2 p3 ->
-                    ( { position = p1 }
-                    , { position = p2 }
-                    , { position = p3 }
-                    )
-                )
-                (Array.get i1 pointArray)
-                (Array.get i2 pointArray)
-                (Array.get i3 pointArray)
-
-        faces =
-            List.filterMap toFace faceIndices
-
-        toEdge ( i, j ) =
-            Maybe.map2 (,) (Array.get i pointArray) (Array.get j pointArray)
-
-        edges =
-            List.filterMap toEdge (EdgeSet.openEdges edgeSet)
+        { hue, saturation, lightness } =
+            Color.toHsl color
     in
-    group [ surface color faces, curve (Color.rgba 127 127 127 1) edges ]
+    Color.hsl hue saturation (lightness * scale)
 
 
-surface : Color -> List Face -> Sketch3d
-surface color faces =
-    case BoundingBox3d.hullOf (List.map faceBounds faces) of
+mesh : Color -> Mesh ( Point3d, Vector3d ) -> Sketch3d
+mesh color mesh_ =
+    let
+        vertices =
+            Mesh.vertices mesh_ |> Array.toList
+
+        points =
+            List.map Tuple.first vertices
+    in
+    case BoundingBox3d.containing points of
         Just boundingBox ->
             let
-                cachedFaces =
-                    List.map (toCachedFace (toVec3 color)) faces
+                cachedVertices =
+                    List.map (toCachedSurfaceVertex (toVec3 color)) vertices
 
-                faceAttributes =
-                    List.map toFaceAttributes cachedFaces
+                vertexAttributes =
+                    List.map toSurfaceVertexAttributes cachedVertices
 
-                mesh =
-                    WebGL.triangles faceAttributes
+                faceIndices =
+                    Mesh.faceIndices mesh_
+
+                webGLMesh =
+                    WebGL.indexedTriangles vertexAttributes faceIndices
+
+                surface =
+                    Surface
+                        { mesh = webGLMesh
+                        , cachedVertices = cachedVertices
+                        , faceIndices = faceIndices
+                        , boundingBox = boundingBox
+                        }
+
+                toPoints ( ( p1, _ ), ( p2, _ ) ) =
+                    ( p1, p2 )
+
+                openEdges =
+                    Mesh.openEdges mesh_ |> List.map toPoints
+
+                allEdges =
+                    Mesh.edges mesh_ |> List.map toPoints
+
+                outline =
+                    curve (Color.rgb 63 63 63) openEdges
+
+                internalHighlights =
+                    curve (adjustLightness 0.85 color) allEdges
             in
-            Surface
-                { mesh = mesh
-                , cachedFaces = cachedFaces
-                , boundingBox = boundingBox
-                }
+            group [ surface, internalHighlights, outline ]
 
         Nothing ->
             Empty
+
+
+surface : Color -> Float -> Surface3d -> Sketch3d
+surface color tolerance surface =
+    mesh color (Surface3d.toMesh tolerance surface)
 
 
 curve : Color -> List Edge -> Sketch3d
@@ -449,6 +430,7 @@ surfaceVertexShader : WebGL.Shader SurfaceVertexAttributes SurfaceUniforms Surfa
 surfaceVertexShader =
     [glsl|
         attribute vec3 position;
+        attribute vec3 normal;
         attribute vec3 color;
 
         uniform mat4 modelViewProjectionMatrix;

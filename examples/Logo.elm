@@ -10,8 +10,10 @@ import Math.Vector3 exposing (Vec3, vec3)
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
 import OpenSolid.LineSegment3d as LineSegment3d
+import OpenSolid.Mesh as Mesh exposing (Mesh)
 import OpenSolid.Point3d as Point3d
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
+import OpenSolid.Vector3d as Vector3d
 
 
 height : Float
@@ -131,56 +133,58 @@ sketch =
         darkBlue =
             Color.rgb 90 99 120
 
+        verticesWithDummyNormals =
+            vertices |> List.map (\point -> ( point, Vector3d.zero ))
+
         leftFace =
-            Sketch3d.indexedTriangles orange
-                vertices
-                [ ( 1, 2, 8 )
-                , ( 1, 8, 7 )
-                , ( 1, 7, 6 )
-                ]
+            Sketch3d.mesh orange <|
+                Mesh.fromList verticesWithDummyNormals
+                    [ ( 1, 2, 8 )
+                    , ( 1, 8, 7 )
+                    , ( 1, 7, 6 )
+                    ]
 
         rightFace =
-            Sketch3d.indexedTriangles lightBlue
-                vertices
-                [ ( 2, 3, 4 )
-                , ( 2, 4, 9 )
-                , ( 2, 9, 8 )
-                ]
+            Sketch3d.mesh lightBlue <|
+                Mesh.fromList verticesWithDummyNormals
+                    [ ( 2, 3, 4 )
+                    , ( 2, 4, 9 )
+                    , ( 2, 9, 8 )
+                    ]
 
         topFace =
-            Sketch3d.indexedTriangles green
-                vertices
-                [ ( 6, 7, 9 )
-                , ( 6, 9, 4 )
-                , ( 6, 4, 5 )
-                ]
+            Sketch3d.mesh green <|
+                Mesh.fromList verticesWithDummyNormals
+                    [ ( 6, 7, 9 )
+                    , ( 6, 9, 4 )
+                    , ( 6, 4, 5 )
+                    ]
 
         triangleFace =
-            Sketch3d.indexedTriangles darkBlue vertices [ ( 7, 8, 9 ) ]
+            Sketch3d.mesh darkBlue <|
+                Mesh.fromList verticesWithDummyNormals
+                    [ ( 7, 8, 9 ) ]
 
         bottomFace =
-            Sketch3d.indexedTriangles green
-                vertices
-                [ ( 0, 3, 2 )
-                , ( 0, 2, 1 )
-                ]
+            Sketch3d.mesh green <|
+                Mesh.fromList verticesWithDummyNormals
+                    [ ( 0, 3, 2 )
+                    , ( 0, 2, 1 )
+                    ]
 
         backLeftFace =
-            Sketch3d.indexedTriangles lightBlue
-                vertices
-                [ ( 6, 5, 0 )
-                , ( 6, 0, 1 )
-                ]
+            Sketch3d.mesh lightBlue <|
+                Mesh.fromList verticesWithDummyNormals
+                    [ ( 6, 5, 0 )
+                    , ( 6, 0, 1 )
+                    ]
 
         backRightFace =
-            Sketch3d.indexedTriangles orange
-                vertices
-                [ ( 3, 0, 5 )
-                , ( 3, 5, 4 )
-                ]
-
-        points =
-            Sketch3d.points 5 Color.darkBlue vertices
+            Sketch3d.mesh orange <|
+                Mesh.fromList verticesWithDummyNormals
+                    [ ( 3, 0, 5 )
+                    , ( 3, 5, 4 )
+                    ]
     in
     Sketch3d.group
         [ leftFace
@@ -190,6 +194,4 @@ sketch =
         , backLeftFace
         , backRightFace
         , bottomFace
-
-        --, points
         ]

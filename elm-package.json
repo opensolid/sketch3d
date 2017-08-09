@@ -6,7 +6,9 @@
     "source-directories": [
         "src",
         "../geometry/src",
-        "../webgl/src"
+        "../webgl/src",
+        "../mesh/src",
+        "../parametric/src"
     ],
     "exposed-modules": [],
     "dependencies": {

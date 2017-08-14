@@ -25,6 +25,8 @@ import Math.Vector4 exposing (Vec4, vec4)
 import OpenSolid.BoundingBox3d as BoundingBox3d
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
+import OpenSolid.Interop.LinearAlgebra.Point3d as Point3d
+import OpenSolid.Interop.LinearAlgebra.Vector3d as Vector3d
 import OpenSolid.Mesh as Mesh exposing (Mesh)
 import OpenSolid.Parametric.Types exposing (..)
 import OpenSolid.Point3d as Point3d
@@ -34,8 +36,6 @@ import OpenSolid.Triangle3d as Triangle3d
 import OpenSolid.Vector3d as Vector3d
 import OpenSolid.WebGL.Camera as Camera exposing (Camera)
 import OpenSolid.WebGL.Frame3d as Frame3d
-import OpenSolid.WebGL.Point3d as Point3d
-import OpenSolid.WebGL.Vector3d as Vector3d
 import WebGL
 import WebGL.Settings
 import WebGL.Settings.DepthTest

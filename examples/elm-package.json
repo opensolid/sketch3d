@@ -9,7 +9,8 @@
         "../../geometry/src",
         "../../webgl/src",
         "../../mesh/src",
-        "../../parametric/src"
+        "../../parametric/src",
+        "../../linear-algebra-interop/src"
     ],
     "exposed-modules": [],
     "native-modules": true,

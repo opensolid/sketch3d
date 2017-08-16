@@ -1,6 +1,7 @@
 module OpenSolid.Sketch3d
     exposing
         ( Sketch3d
+        , body
         , curve
         , group
         , mesh
@@ -22,6 +23,7 @@ import Math.Matrix4 exposing (Mat4)
 import Math.Vector2 exposing (Vec2, vec2)
 import Math.Vector3 exposing (Vec3, vec3)
 import Math.Vector4 exposing (Vec4, vec4)
+import OpenSolid.Body3d as Body3d
 import OpenSolid.BoundingBox3d as BoundingBox3d
 import OpenSolid.Frame3d as Frame3d
 import OpenSolid.Geometry.Types exposing (..)
@@ -279,6 +281,11 @@ mesh color mesh_ =
 surface : Color -> Float -> Surface3d -> Sketch3d
 surface color tolerance surface =
     mesh color (Surface3d.toMesh tolerance surface)
+
+
+body : Color -> Float -> Body3d -> Sketch3d
+body color tolerance body =
+    group (List.map (surface color tolerance) (Body3d.surfaces body))
 
 
 curve : Color -> List Edge -> Sketch3d

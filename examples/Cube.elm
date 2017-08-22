@@ -3,9 +3,8 @@ module Cube exposing (..)
 import Color exposing (Color)
 import Html exposing (Html)
 import OpenSolid.Direction3d as Direction3d
-import OpenSolid.Geometry.Types exposing (..)
 import OpenSolid.Mesh as Mesh
-import OpenSolid.Point3d as Point3d
+import OpenSolid.Point3d as Point3d exposing (Point3d)
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 import OpenSolid.Vector3d as Vector3d
 import OpenSolid.WebGL.Camera as Camera
@@ -49,28 +48,28 @@ main =
             768
 
         p0 =
-            Point3d ( -1, -1, -1 )
+            Point3d.withCoordinates ( -1, -1, -1 )
 
         p1 =
-            Point3d ( 1, -1, -1 )
+            Point3d.withCoordinates ( 1, -1, -1 )
 
         p2 =
-            Point3d ( 1, 1, -1 )
+            Point3d.withCoordinates ( 1, 1, -1 )
 
         p3 =
-            Point3d ( -1, 1, -1 )
+            Point3d.withCoordinates ( -1, 1, -1 )
 
         p4 =
-            Point3d ( -1, -1, 1 )
+            Point3d.withCoordinates ( -1, -1, 1 )
 
         p5 =
-            Point3d ( 1, -1, 1 )
+            Point3d.withCoordinates ( 1, -1, 1 )
 
         p6 =
-            Point3d ( 1, 1, 1 )
+            Point3d.withCoordinates ( 1, 1, 1 )
 
         p7 =
-            Point3d ( -1, 1, 1 )
+            Point3d.withCoordinates ( -1, 1, 1 )
 
         frontSurface =
             rectangle lightBlue p1 p2 p6 p5
@@ -93,7 +92,7 @@ main =
         eyeFrame =
             Frame3d.lookAt
                 { focalPoint = Point3d.origin
-                , eyePoint = Point3d ( 10, 6, 6 )
+                , eyePoint = Point3d.withCoordinates ( 10, 6, 6 )
                 , upDirection = Direction3d.z
                 }
 

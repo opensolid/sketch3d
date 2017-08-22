@@ -20,28 +20,25 @@ import Color exposing (Color)
 import Html exposing (Html)
 import Html.Attributes
 import Math.Matrix4 exposing (Mat4)
-import Math.Vector2 exposing (Vec2, vec2)
 import Math.Vector3 exposing (Vec3, vec3)
 import Math.Vector4 exposing (Vec4, vec4)
+import OpenSolid.Axis3d as Axis3d exposing (Axis3d)
 import OpenSolid.Body3d as Body3d
-import OpenSolid.BoundingBox3d as BoundingBox3d
-import OpenSolid.Frame3d as Frame3d
-import OpenSolid.Geometry.Types exposing (..)
+import OpenSolid.BoundingBox3d as BoundingBox3d exposing (BoundingBox3d)
+import OpenSolid.Frame3d as Frame3d exposing (Frame3d)
 import OpenSolid.Interop.LinearAlgebra.Point3d as Point3d
 import OpenSolid.Interop.LinearAlgebra.Vector3d as Vector3d
 import OpenSolid.Mesh as Mesh exposing (Mesh)
 import OpenSolid.Parametric.Types exposing (..)
-import OpenSolid.Point3d as Point3d
-import OpenSolid.Sketch3d.EdgeSet as EdgeSet exposing (EdgeSet)
+import OpenSolid.Plane3d as Plane3d exposing (Plane3d)
+import OpenSolid.Point3d as Point3d exposing (Point3d)
 import OpenSolid.Surface3d as Surface3d
-import OpenSolid.Triangle3d as Triangle3d
-import OpenSolid.Vector3d as Vector3d
+import OpenSolid.Vector3d as Vector3d exposing (Vector3d)
 import OpenSolid.WebGL.Camera as Camera exposing (Camera)
 import OpenSolid.WebGL.Frame3d as Frame3d
 import WebGL
 import WebGL.Settings
 import WebGL.Settings.DepthTest
-import WebGL.Texture as Texture exposing (Texture)
 
 
 type alias SurfaceVertex =

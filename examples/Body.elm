@@ -8,7 +8,6 @@ import OpenSolid.Axis3d as Axis3d
 import OpenSolid.Body3d as Body3d
 import OpenSolid.Direction3d as Direction3d
 import OpenSolid.Frame2d as Frame2d
-import OpenSolid.Geometry.Types exposing (..)
 import OpenSolid.Parametric.Types exposing (..)
 import OpenSolid.Point3d as Point3d
 import OpenSolid.Rectangle2d as Rectangle2d
@@ -54,7 +53,7 @@ view angleInDegrees =
             768
 
         eyePoint =
-            Point3d ( 20, 0, 0 )
+            Point3d.withCoordinates ( 20, 0, 0 )
                 |> Point3d.rotateAround Axis3d.y (degrees -30)
                 |> Point3d.rotateAround Axis3d.z (degrees 45)
 

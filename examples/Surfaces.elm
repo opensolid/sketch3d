@@ -39,10 +39,12 @@ surfaces =
             Point3d.withCoordinates ( 6, 0, 0 )
 
         line1 =
-            Curve3d.lineSegment ( p0, p1 )
+            Curve3d.lineSegment <|
+                LineSegment3d.withEndpoints ( p0, p1 )
 
         line2 =
-            Curve3d.lineSegment ( p1, p2 )
+            Curve3d.lineSegment <|
+                LineSegment3d.withEndpoints ( p1, p2 )
 
         arc =
             let
@@ -52,11 +54,11 @@ surfaces =
                         , direction = Direction3d.y
                         }
             in
-            Curve3d.arc
-                { startPoint = p2
-                , axis = axis
-                , sweptAngle = degrees 90
-                }
+            Curve3d.arc <|
+                Arc3d.around axis
+                    { startPoint = p2
+                    , sweptAngle = degrees 90
+                    }
 
         spline =
             Curve3d.quadraticSpline ( p3, p4, p5 )

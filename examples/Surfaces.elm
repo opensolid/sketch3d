@@ -39,12 +39,10 @@ surfaces =
             Point3d.withCoordinates ( 6, 0, 0 )
 
         line1 =
-            Curve3d.lineSegment <|
-                LineSegment3d.withEndpoints ( p0, p1 )
+            Curve3d.lineSegment <| LineSegment3d.from p0 p1
 
         line2 =
-            Curve3d.lineSegment <|
-                LineSegment3d.withEndpoints ( p1, p2 )
+            Curve3d.lineSegment <| LineSegment3d.from p1 p2
 
         arc =
             let

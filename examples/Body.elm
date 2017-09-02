@@ -16,7 +16,6 @@ import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 import OpenSolid.SketchPlane3d as SketchPlane3d
 import OpenSolid.Surface3d as Surface3d
 import OpenSolid.WebGL.Camera as Camera
-import OpenSolid.WebGL.Frame3d as Frame3d
 
 
 roundedRectangle : Region2d
@@ -58,7 +57,7 @@ view angleInDegrees =
                 |> Point3d.rotateAround Axis3d.z (degrees 45)
 
         eyeFrame =
-            Frame3d.lookAt
+            Camera.lookAt
                 { focalPoint = Point3d.origin
                 , eyePoint = eyePoint
                 , upDirection = Direction3d.z

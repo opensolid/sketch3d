@@ -35,7 +35,6 @@ import OpenSolid.Point3d as Point3d exposing (Point3d)
 import OpenSolid.Surface3d as Surface3d
 import OpenSolid.Vector3d as Vector3d exposing (Vector3d)
 import OpenSolid.WebGL.Camera as Camera exposing (Camera)
-import OpenSolid.WebGL.Frame3d as Frame3d
 import WebGL
 import WebGL.Settings
 import WebGL.Settings.DepthTest
@@ -464,14 +463,8 @@ surfaceFragmentShader =
 surfaceToEntity : Camera -> Float -> Frame3d -> Bool -> WebGL.Mesh SurfaceVertexAttributes -> WebGL.Entity
 surfaceToEntity camera pixelScale placementFrame isMirror mesh =
     let
-        modelViewMatrix =
-            Frame3d.modelViewMatrix (Camera.frame camera) placementFrame
-
-        projectionMatrix =
-            Camera.projectionMatrix camera
-
         modelViewProjectionMatrix =
-            Math.Matrix4.mul projectionMatrix modelViewMatrix
+            Camera.modelViewProjectionMatrix camera placementFrame
 
         cullSetting =
             if isMirror then
@@ -539,14 +532,8 @@ curveFragmentShader =
 curveToEntity : Camera -> Frame3d -> WebGL.Mesh CurveVertexAttributes -> WebGL.Entity
 curveToEntity camera placementFrame mesh =
     let
-        modelViewMatrix =
-            Frame3d.modelViewMatrix (Camera.frame camera) placementFrame
-
-        projectionMatrix =
-            Camera.projectionMatrix camera
-
         modelViewProjectionMatrix =
-            Math.Matrix4.mul projectionMatrix modelViewMatrix
+            Camera.modelViewProjectionMatrix camera placementFrame
 
         uniforms =
             { modelViewProjectionMatrix = modelViewProjectionMatrix
@@ -605,14 +592,8 @@ pointFragmentShader =
 pointsToEntity : Camera -> Frame3d -> WebGL.Mesh PointAttributes -> WebGL.Entity
 pointsToEntity camera placementFrame mesh =
     let
-        modelViewMatrix =
-            Frame3d.modelViewMatrix (Camera.frame camera) placementFrame
-
-        projectionMatrix =
-            Camera.projectionMatrix camera
-
         modelViewProjectionMatrix =
-            Math.Matrix4.mul projectionMatrix modelViewMatrix
+            Camera.modelViewProjectionMatrix camera placementFrame
 
         uniforms =
             { modelViewProjectionMatrix = modelViewProjectionMatrix

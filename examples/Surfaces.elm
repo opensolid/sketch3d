@@ -12,6 +12,7 @@ import OpenSolid.Frame3d as Frame3d
 import OpenSolid.LineSegment3d as LineSegment3d
 import OpenSolid.Parametric.Types exposing (..)
 import OpenSolid.Point3d as Point3d
+import OpenSolid.QuadraticSpline3d as QuadraticSpline3d
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 import OpenSolid.Surface3d as Surface3d
 import OpenSolid.Vector3d as Vector3d
@@ -60,7 +61,8 @@ surfaces =
                     }
 
         spline =
-            Curve3d.quadraticSpline ( p3, p4, p5 )
+            Curve3d.quadraticSpline <|
+                QuadraticSpline3d.withControlPoints ( p3, p4, p5 )
 
         extrusionVector =
             Vector3d.withComponents ( 0, 3, 0 )

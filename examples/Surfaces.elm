@@ -4,10 +4,12 @@ import Color
 import Html exposing (Html)
 import Html.Attributes as Attributes
 import Kintail.InputWidget as InputWidget
+import OpenSolid.Arc3d as Arc3d
 import OpenSolid.Axis3d as Axis3d
 import OpenSolid.Curve3d as Curve3d
 import OpenSolid.Direction3d as Direction3d
 import OpenSolid.Frame3d as Frame3d
+import OpenSolid.LineSegment3d as LineSegment3d
 import OpenSolid.Parametric.Types exposing (..)
 import OpenSolid.Point3d as Point3d
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)

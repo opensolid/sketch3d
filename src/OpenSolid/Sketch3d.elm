@@ -230,7 +230,7 @@ mesh color mesh_ =
         points =
             List.map Tuple.first vertices
     in
-    case BoundingBox3d.containing points of
+    case Point3d.hullOf points of
         Just boundingBox ->
             let
                 cachedVertices =
@@ -310,7 +310,7 @@ curve color edges =
 
 points : Float -> Color -> List Point3d -> Sketch3d
 points radius color points_ =
-    case BoundingBox3d.containing points_ of
+    case Point3d.hullOf points_ of
         Just boundingBox ->
             let
                 cachedPoints =

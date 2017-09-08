@@ -5,6 +5,7 @@ module Logo
         , vertices
         )
 
+import Array.Hamt as Array
 import Color
 import OpenSolid.Frame3d as Frame3d exposing (Frame3d)
 import OpenSolid.LineSegment3d as LineSegment3d exposing (LineSegment3d)

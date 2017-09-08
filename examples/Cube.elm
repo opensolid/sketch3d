@@ -20,9 +20,12 @@ rectangle color p0 p1 p2 p3 =
             Vector3d.zero
     in
     Sketch3d.mesh color <|
-        Mesh.fromList
-            [ ( p0, n ), ( p1, n ), ( p2, n ), ( p3, n ) ]
-            [ ( 0, 1, 2 ), ( 0, 2, 3 ) ]
+        Mesh.with
+            { vertices =
+                Array.fromList
+                    [ ( p0, n ), ( p1, n ), ( p2, n ), ( p3, n ) ]
+            , faceIndices = [ ( 0, 1, 2 ), ( 0, 2, 3 ) ]
+            }
 
 
 main : Html msg

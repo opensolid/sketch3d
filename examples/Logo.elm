@@ -132,57 +132,80 @@ sketch =
             Color.rgb 90 99 120
 
         verticesWithDummyNormals =
-            vertices |> List.map (\point -> ( point, Vector3d.zero ))
+            vertices
+                |> List.map (\point -> ( point, Vector3d.zero ))
+                |> Array.fromList
 
         leftFace =
             Sketch3d.mesh orange <|
-                Mesh.fromList verticesWithDummyNormals
-                    [ ( 1, 2, 8 )
-                    , ( 1, 8, 7 )
-                    , ( 1, 7, 6 )
-                    ]
+                Mesh.with
+                    { vertices = verticesWithDummyNormals
+                    , faceIndices =
+                        [ ( 1, 2, 8 )
+                        , ( 1, 8, 7 )
+                        , ( 1, 7, 6 )
+                        ]
+                    }
 
         rightFace =
             Sketch3d.mesh lightBlue <|
-                Mesh.fromList verticesWithDummyNormals
-                    [ ( 2, 3, 4 )
-                    , ( 2, 4, 9 )
-                    , ( 2, 9, 8 )
-                    ]
+                Mesh.with
+                    { vertices = verticesWithDummyNormals
+                    , faceIndices =
+                        [ ( 2, 3, 4 )
+                        , ( 2, 4, 9 )
+                        , ( 2, 9, 8 )
+                        ]
+                    }
 
         topFace =
             Sketch3d.mesh green <|
-                Mesh.fromList verticesWithDummyNormals
-                    [ ( 6, 7, 9 )
-                    , ( 6, 9, 4 )
-                    , ( 6, 4, 5 )
-                    ]
+                Mesh.with
+                    { vertices = verticesWithDummyNormals
+                    , faceIndices =
+                        [ ( 6, 7, 9 )
+                        , ( 6, 9, 4 )
+                        , ( 6, 4, 5 )
+                        ]
+                    }
 
         triangleFace =
             Sketch3d.mesh darkBlue <|
-                Mesh.fromList verticesWithDummyNormals
-                    [ ( 7, 8, 9 ) ]
+                Mesh.with
+                    { vertices = verticesWithDummyNormals
+                    , faceIndices =
+                        [ ( 7, 8, 9 ) ]
+                    }
 
         bottomFace =
             Sketch3d.mesh green <|
-                Mesh.fromList verticesWithDummyNormals
-                    [ ( 0, 3, 2 )
-                    , ( 0, 2, 1 )
-                    ]
+                Mesh.with
+                    { vertices = verticesWithDummyNormals
+                    , faceIndices =
+                        [ ( 0, 3, 2 )
+                        , ( 0, 2, 1 )
+                        ]
+                    }
 
         backLeftFace =
             Sketch3d.mesh lightBlue <|
-                Mesh.fromList verticesWithDummyNormals
-                    [ ( 6, 5, 0 )
-                    , ( 6, 0, 1 )
-                    ]
+                Mesh.with
+                    { vertices = verticesWithDummyNormals
+                    , faceIndices =
+                        [ ( 6, 5, 0 )
+                        , ( 6, 0, 1 )
+                        ]
+                    }
 
         backRightFace =
             Sketch3d.mesh orange <|
-                Mesh.fromList verticesWithDummyNormals
-                    [ ( 3, 0, 5 )
-                    , ( 3, 5, 4 )
-                    ]
+                Mesh.with
+                    { vertices = verticesWithDummyNormals
+                    , faceIndices =
+                        [ ( 3, 0, 5 )
+                        , ( 3, 5, 4 )
+                        ]
+                    }
     in
     Sketch3d.group
         [ leftFace

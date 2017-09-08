@@ -2,13 +2,12 @@ module Cube exposing (..)
 
 import Color exposing (Color)
 import Html exposing (Html)
+import OpenSolid.Camera as Camera
 import OpenSolid.Direction3d as Direction3d
 import OpenSolid.Mesh as Mesh
 import OpenSolid.Point3d as Point3d exposing (Point3d)
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 import OpenSolid.Vector3d as Vector3d
-import OpenSolid.WebGL.Camera as Camera
-import OpenSolid.WebGL.Frame3d as Frame3d
 
 
 rectangle : Color -> Point3d -> Point3d -> Point3d -> Point3d -> Sketch3d
@@ -90,7 +89,7 @@ main =
             Sketch3d.group
 
         eyeFrame =
-            Frame3d.lookAt
+            Camera.lookAt
                 { focalPoint = Point3d.origin
                 , eyePoint = Point3d.withCoordinates ( 10, 6, 6 )
                 , upDirection = Direction3d.z

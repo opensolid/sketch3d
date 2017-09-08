@@ -6,7 +6,7 @@
     "source-directories": [
         "src",
         "../geometry/src",
-        "../webgl/src",
+        "../camera/src",
         "../mesh/src",
         "../parametric/src",
         "../linear-algebra-interop/src"

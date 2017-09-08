@@ -6,6 +6,7 @@ import Html.Attributes as Attributes
 import Kintail.InputWidget as InputWidget
 import OpenSolid.Axis3d as Axis3d
 import OpenSolid.Body3d as Body3d
+import OpenSolid.Camera as Camera
 import OpenSolid.Direction3d as Direction3d
 import OpenSolid.Frame2d as Frame2d
 import OpenSolid.Parametric.Types exposing (..)
@@ -15,8 +16,6 @@ import OpenSolid.Region2d as Region2d
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 import OpenSolid.SketchPlane3d as SketchPlane3d
 import OpenSolid.Surface3d as Surface3d
-import OpenSolid.WebGL.Camera as Camera
-import OpenSolid.WebGL.Frame3d as Frame3d
 
 
 roundedRectangle : Region2d
@@ -58,7 +57,7 @@ view angleInDegrees =
                 |> Point3d.rotateAround Axis3d.z (degrees 45)
 
         eyeFrame =
-            Frame3d.lookAt
+            Camera.lookAt
                 { focalPoint = Point3d.origin
                 , eyePoint = eyePoint
                 , upDirection = Direction3d.z

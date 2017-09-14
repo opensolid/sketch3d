@@ -52,7 +52,7 @@ view angleInDegrees =
             768
 
         eyePoint =
-            Point3d.withCoordinates ( 20, 0, 0 )
+            Point3d.fromCoordinates ( 20, 0, 0 )
                 |> Point3d.rotateAround Axis3d.y (degrees -30)
                 |> Point3d.rotateAround Axis3d.z (degrees 45)
 

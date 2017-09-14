@@ -51,28 +51,28 @@ main =
             768
 
         p0 =
-            Point3d.withCoordinates ( -1, -1, -1 )
+            Point3d.fromCoordinates ( -1, -1, -1 )
 
         p1 =
-            Point3d.withCoordinates ( 1, -1, -1 )
+            Point3d.fromCoordinates ( 1, -1, -1 )
 
         p2 =
-            Point3d.withCoordinates ( 1, 1, -1 )
+            Point3d.fromCoordinates ( 1, 1, -1 )
 
         p3 =
-            Point3d.withCoordinates ( -1, 1, -1 )
+            Point3d.fromCoordinates ( -1, 1, -1 )
 
         p4 =
-            Point3d.withCoordinates ( -1, -1, 1 )
+            Point3d.fromCoordinates ( -1, -1, 1 )
 
         p5 =
-            Point3d.withCoordinates ( 1, -1, 1 )
+            Point3d.fromCoordinates ( 1, -1, 1 )
 
         p6 =
-            Point3d.withCoordinates ( 1, 1, 1 )
+            Point3d.fromCoordinates ( 1, 1, 1 )
 
         p7 =
-            Point3d.withCoordinates ( -1, 1, 1 )
+            Point3d.fromCoordinates ( -1, 1, 1 )
 
         frontSurface =
             rectangle lightBlue p1 p2 p6 p5
@@ -95,7 +95,7 @@ main =
         eyeFrame =
             Camera.lookAt
                 { focalPoint = Point3d.origin
-                , eyePoint = Point3d.withCoordinates ( 10, 6, 6 )
+                , eyePoint = Point3d.fromCoordinates ( 10, 6, 6 )
                 , upDirection = Direction3d.z
                 }
 

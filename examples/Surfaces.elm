@@ -23,22 +23,22 @@ surfaces : List Surface3d
 surfaces =
     let
         p0 =
-            Point3d.withCoordinates ( 0, 0, 3 )
+            Point3d.fromCoordinates ( 0, 0, 3 )
 
         p1 =
-            Point3d.withCoordinates ( 3, 0, 3 )
+            Point3d.fromCoordinates ( 3, 0, 3 )
 
         p2 =
-            Point3d.withCoordinates ( 4, 0, 3 )
+            Point3d.fromCoordinates ( 4, 0, 3 )
 
         p3 =
-            Point3d.withCoordinates ( 5, 0, 2 )
+            Point3d.fromCoordinates ( 5, 0, 2 )
 
         p4 =
-            Point3d.withCoordinates ( 5, 0, 0 )
+            Point3d.fromCoordinates ( 5, 0, 0 )
 
         p5 =
-            Point3d.withCoordinates ( 6, 0, 0 )
+            Point3d.fromCoordinates ( 6, 0, 0 )
 
         line1 =
             Curve3d.lineSegment <| LineSegment3d.from p0 p1
@@ -50,7 +50,7 @@ surfaces =
             let
                 axis =
                     Axis3d.with
-                        { originPoint = Point3d.withCoordinates ( 4, 0, 2 )
+                        { originPoint = Point3d.fromCoordinates ( 4, 0, 2 )
                         , direction = Direction3d.y
                         }
             in
@@ -62,10 +62,10 @@ surfaces =
 
         spline =
             Curve3d.quadraticSpline <|
-                QuadraticSpline3d.withControlPoints ( p3, p4, p5 )
+                QuadraticSpline3d.fromControlPoints ( p3, p4, p5 )
 
         extrusionVector =
-            Vector3d.withComponents ( 0, 3, 0 )
+            Vector3d.fromComponents ( 0, 3, 0 )
 
         extrusionSurfaces1 =
             [ line2, arc, spline ]
@@ -76,7 +76,7 @@ surfaces =
             let
                 rotationAxis =
                     Axis3d.with
-                        { originPoint = Point3d.withCoordinates ( 1.5, 1.5, 0 )
+                        { originPoint = Point3d.fromCoordinates ( 1.5, 1.5, 0 )
                         , direction = Direction3d.z
                         }
             in
@@ -90,7 +90,7 @@ surfaces =
             let
                 revolutionAxis =
                     Axis3d.with
-                        { originPoint = Point3d.withCoordinates ( 3, 3, 3 )
+                        { originPoint = Point3d.fromCoordinates ( 3, 3, 3 )
                         , direction = Direction3d.z
                         }
             in
@@ -114,7 +114,7 @@ sketch =
     surfaces
         |> List.map (Sketch3d.surface Color.lightBlue 0.001)
         |> Sketch3d.group
-        |> Sketch3d.relativeTo (Frame3d.at (Point3d.withCoordinates ( 2, 2, 0 )))
+        |> Sketch3d.relativeTo (Frame3d.at (Point3d.fromCoordinates ( 2, 2, 0 )))
 
 
 view : Float -> Html Float
@@ -127,7 +127,7 @@ view angleInDegrees =
             768
 
         eyePoint =
-            Point3d.withCoordinates ( 20, 0, 0 )
+            Point3d.fromCoordinates ( 20, 0, 0 )
                 |> Point3d.rotateAround Axis3d.y (degrees -30)
                 |> Point3d.rotateAround Axis3d.z (degrees 45)
 

@@ -23,7 +23,7 @@ view angleInDegrees =
             768
 
         eyePoint =
-            Point3d.withCoordinates ( 10, 0, 0 )
+            Point3d.fromCoordinates ( 10, 0, 0 )
                 |> Point3d.rotateAround Axis3d.y (degrees -22.5)
                 |> Point3d.rotateAround Axis3d.z (degrees 60)
 
@@ -52,7 +52,7 @@ view angleInDegrees =
 
         rightLogo =
             rotatedLogo
-                |> Sketch3d.translateBy (Vector3d.withComponents ( 1, 1, 0.75 ))
+                |> Sketch3d.translateBy (Vector3d.fromComponents ( 1, 1, 0.75 ))
 
         leftLogo =
             rightLogo |> Sketch3d.mirrorAcross Plane3d.zx

@@ -11,6 +11,7 @@ import OpenSolid.Plane3d as Plane3d
 import OpenSolid.Point3d as Point3d
 import OpenSolid.Sketch3d as Sketch3d
 import OpenSolid.Vector3d as Vector3d
+import OpenSolid.Viewpoint as Viewpoint
 
 
 view : Float -> Html Float
@@ -27,8 +28,8 @@ view angleInDegrees =
                 |> Point3d.rotateAround Axis3d.y (degrees -22.5)
                 |> Point3d.rotateAround Axis3d.z (degrees 60)
 
-        eyeFrame =
-            Camera.lookAt
+        viewpoint =
+            Viewpoint.lookAt
                 { focalPoint = Point3d.origin
                 , eyePoint = eyePoint
                 , upDirection = Direction3d.z
@@ -36,7 +37,7 @@ view angleInDegrees =
 
         camera =
             Camera.perspective
-                { frame = eyeFrame
+                { viewpoint = viewpoint
                 , screenWidth = toFloat width
                 , screenHeight = toFloat height
                 , verticalFieldOfView = degrees 30

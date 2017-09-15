@@ -9,6 +9,7 @@ import OpenSolid.Mesh as Mesh
 import OpenSolid.Point3d as Point3d exposing (Point3d)
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 import OpenSolid.Vector3d as Vector3d
+import OpenSolid.Viewpoint as Viewpoint
 
 
 rectangle : Color -> Point3d -> Point3d -> Point3d -> Point3d -> Sketch3d
@@ -92,8 +93,8 @@ main =
         edges =
             Sketch3d.group
 
-        eyeFrame =
-            Camera.lookAt
+        viewpoint =
+            Viewpoint.lookAt
                 { focalPoint = Point3d.origin
                 , eyePoint = Point3d.fromCoordinates ( 10, 6, 6 )
                 , upDirection = Direction3d.z
@@ -101,7 +102,7 @@ main =
 
         camera =
             Camera.perspective
-                { frame = eyeFrame
+                { viewpoint = viewpoint
                 , screenWidth = toFloat width
                 , screenHeight = toFloat height
                 , verticalFieldOfView = degrees 30

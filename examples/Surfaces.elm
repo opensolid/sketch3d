@@ -17,6 +17,7 @@ import OpenSolid.QuadraticSpline3d as QuadraticSpline3d
 import OpenSolid.Sketch3d as Sketch3d exposing (Sketch3d)
 import OpenSolid.Surface3d as Surface3d
 import OpenSolid.Vector3d as Vector3d
+import OpenSolid.Viewpoint as Viewpoint
 
 
 surfaces : List Surface3d
@@ -131,8 +132,8 @@ view angleInDegrees =
                 |> Point3d.rotateAround Axis3d.y (degrees -30)
                 |> Point3d.rotateAround Axis3d.z (degrees 45)
 
-        eyeFrame =
-            Camera.lookAt
+        viewpoint =
+            Viewpoint.lookAt
                 { focalPoint = Point3d.origin
                 , eyePoint = eyePoint
                 , upDirection = Direction3d.z
@@ -140,7 +141,7 @@ view angleInDegrees =
 
         camera =
             Camera.perspective
-                { frame = eyeFrame
+                { viewpoint = viewpoint
                 , screenWidth = toFloat width
                 , screenHeight = toFloat height
                 , verticalFieldOfView = degrees 30

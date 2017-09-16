@@ -115,7 +115,8 @@ sketch =
     surfaces
         |> List.map (Sketch3d.surface Color.lightBlue 0.001)
         |> Sketch3d.group
-        |> Sketch3d.relativeTo (Frame3d.at (Point3d.fromCoordinates ( 2, 2, 0 )))
+        |> Sketch3d.relativeTo
+            (Frame3d.atPoint (Point3d.fromCoordinates ( 2, 2, 0 )))
 
 
 view : Float -> Html Float

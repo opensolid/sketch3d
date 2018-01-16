@@ -208,8 +208,8 @@ toPointAttributes cachedPoint =
 
 
 edgeBounds : Edge -> BoundingBox3d
-edgeBounds ( startPosition, endPosition ) =
-    Point3d.hull startPosition endPosition
+edgeBounds =
+    BoundingBox3d.fromCorners
 
 
 adjustLightness : Float -> Color -> Color
@@ -230,7 +230,7 @@ mesh color mesh_ =
         points =
             List.map Tuple.first vertices
     in
-    case Point3d.hullOf points of
+    case BoundingBox3d.containingPoints points of
         Just boundingBox ->
             let
                 cachedVertices =
@@ -286,8 +286,8 @@ body color tolerance body =
 
 curve : Color -> List Edge -> Sketch3d
 curve color edges =
-    case BoundingBox3d.hullOf (List.map edgeBounds edges) of
-        Just boundingBox ->
+    case BoundingBox3d.aggregate (List.map edgeBounds edges) of
+        Just overallBoundingBox ->
             let
                 cachedEdges =
                     List.map (toCachedEdge (toVec4 color)) edges
@@ -301,7 +301,7 @@ curve color edges =
             Curve
                 { mesh = mesh
                 , cachedEdges = cachedEdges
-                , boundingBox = boundingBox
+                , boundingBox = overallBoundingBox
                 }
 
         Nothing ->
@@ -310,7 +310,7 @@ curve color edges =
 
 points : Float -> Color -> List Point3d -> Sketch3d
 points radius color points_ =
-    case Point3d.hullOf points_ of
+    case BoundingBox3d.containingPoints points_ of
         Just boundingBox ->
             let
                 cachedPoints =
